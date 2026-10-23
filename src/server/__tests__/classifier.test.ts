@@ -15,6 +15,37 @@ describe('FileClassifier', () => {
     expect(FileClassifier.classify('table.xlsx').category).toBe('Spreadsheets');
     expect(FileClassifier.classify('archive.zip').category).toBe('Archives');
   });
+
+  it('correctly classifies Codebases and project packages', () => {
+    expect(FileClassifier.classify('react-lib.whl').category).toBe('Codebases');
+    expect(FileClassifier.classify('serde.crate').category).toBe('Codebases');
+    expect(FileClassifier.classify('backup.gitbundle').category).toBe('Codebases');
+    expect(FileClassifier.classify('plugin.vsix').category).toBe('Codebases');
+    // Workspace repository root containing package.json / .git / Cargo.toml
+    expect(FileClassifier.classify(process.cwd()).category).toBe('Codebases');
+  });
+
+  it('correctly classifies Source Code & Scripts (Codes)', () => {
+    expect(FileClassifier.classify('main.rs').category).toBe('Codes');
+    expect(FileClassifier.classify('index.tsx').category).toBe('Codes');
+    expect(FileClassifier.classify('agent.py').category).toBe('Codes');
+    expect(FileClassifier.classify('Dockerfile').category).toBe('Codes');
+    expect(FileClassifier.classify('Makefile').category).toBe('Codes');
+    expect(FileClassifier.classify('schema.sql').category).toBe('Codes');
+  });
+
+  it('correctly classifies AI & Machine Learning models', () => {
+    expect(FileClassifier.classify('flux1-dev.safetensors').category).toBe('AI Models');
+    expect(FileClassifier.classify('qwen2.5-7b.gguf').category).toBe('AI Models');
+    expect(FileClassifier.classify('resnet50.onnx').category).toBe('AI Models');
+  });
+
+  it('correctly classifies Disk Images and Security files', () => {
+    expect(FileClassifier.classify('archlinux-2026.iso').category).toBe('Disk Images');
+    expect(FileClassifier.classify('windows11.vmdk').category).toBe('Disk Images');
+    expect(FileClassifier.classify('id_rsa').category).toBe('Security');
+    expect(FileClassifier.classify('certificate.pem').category).toBe('Security');
+  });
 });
 
 describe('RuleEngine with Custom Destination and Torrents', () => {

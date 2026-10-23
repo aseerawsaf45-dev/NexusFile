@@ -40,7 +40,7 @@ import { FileOperationHistory } from '@/lib/types';
 
 const CATEGORY_COLORS: Record<string, string> = {
   Documents: '#3b82f6',
-  Torrents: '#10b981',
+  Torrents: '#059669',
   Spreadsheets: '#10b981',
   Presentations: '#f59e0b',
   Images: '#ec4899',
@@ -48,8 +48,17 @@ const CATEGORY_COLORS: Record<string, string> = {
   Audio: '#06b6d4',
   Archives: '#eab308',
   Installers: '#ef4444',
+  Codebases: '#f97316',
+  Codes: '#06b6d4',
   Development: '#0284c7',
+  'AI Models': '#a855f7',
   Design: '#f43f5e',
+  'Disk Images': '#e11d48',
+  Security: '#10b981',
+  Fonts: '#6366f1',
+  Data: '#14b8a6',
+  Ebooks: '#d97706',
+  Shortcuts: '#64748b',
   Unknown: '#94a3b8',
 };
 

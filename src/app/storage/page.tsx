@@ -35,6 +35,7 @@ import {
   StorageScanResult,
   FileCategory,
 } from '@/lib/types';
+import { DEFAULT_CATEGORIES } from '@/lib/constants';
 import { formatBytes } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -565,32 +566,50 @@ export default function StorageAnalyzerPage() {
                   />
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Min Size:</span>
-                  <button
-                    onClick={() => setSizeFilter('all')}
-                    className={`px-2.5 py-1 text-xs rounded-md font-medium ${
-                      sizeFilter === 'all' ? 'bg-brand-600 text-white' : 'bg-secondary text-muted-foreground'
-                    }`}
-                  >
-                    All
-                  </button>
-                  <button
-                    onClick={() => setSizeFilter('100mb')}
-                    className={`px-2.5 py-1 text-xs rounded-md font-medium ${
-                      sizeFilter === '100mb' ? 'bg-brand-600 text-white' : 'bg-secondary text-muted-foreground'
-                    }`}
-                  >
-                    &gt; 100 MB
-                  </button>
-                  <button
-                    onClick={() => setSizeFilter('100mb')}
-                    className={`px-2.5 py-1 text-xs rounded-md font-medium ${
-                      sizeFilter === '1gb' ? 'bg-brand-600 text-white' : 'bg-secondary text-muted-foreground'
-                    }`}
-                  >
-                    &gt; 1 GB
-                  </button>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Category:</span>
+                    <select
+                      value={categoryFilter}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
+                      className="px-2.5 py-1 text-xs bg-secondary border border-border rounded-md text-foreground focus:border-brand-500 outline-none"
+                    >
+                      <option value="all">All Categories</option>
+                      {DEFAULT_CATEGORIES.map((cat) => (
+                        <option key={cat.id} value={cat.id}>
+                          {cat.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-muted-foreground">Min Size:</span>
+                    <button
+                      onClick={() => setSizeFilter('all')}
+                      className={`px-2.5 py-1 text-xs rounded-md font-medium ${
+                        sizeFilter === 'all' ? 'bg-brand-600 text-white' : 'bg-secondary text-muted-foreground'
+                      }`}
+                    >
+                      All
+                    </button>
+                    <button
+                      onClick={() => setSizeFilter('100mb')}
+                      className={`px-2.5 py-1 text-xs rounded-md font-medium ${
+                        sizeFilter === '100mb' ? 'bg-brand-600 text-white' : 'bg-secondary text-muted-foreground'
+                      }`}
+                    >
+                      &gt; 100 MB
+                    </button>
+                    <button
+                      onClick={() => setSizeFilter('1gb')}
+                      className={`px-2.5 py-1 text-xs rounded-md font-medium ${
+                        sizeFilter === '1gb' ? 'bg-brand-600 text-white' : 'bg-secondary text-muted-foreground'
+                      }`}
+                    >
+                      &gt; 1 GB
+                    </button>
+                  </div>
                 </div>
               </div>
 

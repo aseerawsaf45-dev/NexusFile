@@ -14,6 +14,7 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { apiClient } from '@/lib/api-client';
 import { FileOperationHistory } from '@/lib/types';
+import { DEFAULT_CATEGORIES } from '@/lib/constants';
 import { formatBytes, formatRelativeTime, formatDate } from '@/lib/utils';
 
 export default function HistoryPage() {
@@ -86,16 +87,14 @@ export default function HistoryPage() {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="px-3 py-2 text-xs bg-secondary/40 border border-border rounded-lg text-foreground"
+              className="px-3 py-2 text-xs bg-secondary/40 border border-border rounded-lg text-foreground focus:border-primary outline-none"
             >
-              <option value="all">All Categories</option>
-              <option value="Documents">Documents</option>
-              <option value="Spreadsheets">Spreadsheets</option>
-              <option value="Images">Images</option>
-              <option value="Videos">Videos</option>
-              <option value="Archives">Archives</option>
-              <option value="Installers">Installers</option>
-              <option value="Development">Development</option>
+              <option value="all">All Categories ({DEFAULT_CATEGORIES.length})</option>
+              {DEFAULT_CATEGORIES.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
             </select>
 
             <select

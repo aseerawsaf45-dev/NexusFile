@@ -449,13 +449,14 @@ export class DirectoryMonitorService {
         } catch {}
 
         if (e.isDirectory()) {
+          const dirClass = FileClassifier.classifyDirectory(fullPath);
           return {
             name: e.name,
             path: fullPath,
             isDirectory: true,
             size: 0,
             modifiedAt,
-            category: 'Documents',
+            category: dirClass ? dirClass.category : 'Documents',
           };
         }
 

@@ -59,15 +59,23 @@ Pre-configured and customizable folder organization structures with date formatt
 
 ---
 
+### 6. Interactive File Explorer & Intelligent Category Classifier
+Browse active drives with real-time multi-signal category detection. Accurately identifies entire codebases, granular source code files, AI model weights, disk images, cryptographic keys, and BitTorrent packages with proposed routing paths.
+
+![File Explorer & Categories](docs/screenshots/file-explorer.png)
+
+---
+
 ## 🌟 Key Features
 
 ### ⚡ Real-Time Directory Monitoring & Stability Queues
 - **Native Filesystem Watchers**: Instant notification when files are dropped, created, or modified.
 - **Adaptive Debounce & Stability Engine**: NexusFile verifies file lock state and stability (size & modified timestamp checks) before executing any rule, ensuring downloads, torrents, or file extractions are never touched prematurely.
 
-### 🧠 Multi-Signal File Classification (Magic Bytes + MIME + Metadata)
-- Classification is not just file extensions: NexusFile reads magic byte headers (PDF, ZIP, 7Z, RAR, PNG, JPEG, PE Executables, MP3, MP4) to identify masqueraded or extensionless files.
-- Fallback to extension registries and project keyword parsing for unmatched items.
+### 🧠 Multi-Signal File & Directory Classification (Magic Bytes + Codebase Markers + Metadata)
+- **Directory & Codebase Probing**: Identifies complete software repositories and project directories by inspecting root markers (`.git`, `package.json`, `Cargo.toml`, `pyproject.toml`, `go.mod`, `pom.xml`, `CMakeLists.txt`, `Makefile`, `.sln`).
+- **Deep Magic Byte Verification**: Reads raw byte signatures (GGUF AI quants `0x47475546`, WebAssembly `0x0061736d`, SQLite `SQLite format 3`, BitTorrent bencode, PE executables `MZ`, PDF, ZIP, 7Z, RAR, PNG, JPEG, WEBP, MP3, FLAC) to identify files accurately regardless of spoofed extensions.
+- **Smart Developer Heuristics**: Distinguishes extensionless build files (`Dockerfile`, `Makefile`, `Procfile`), AI checkpoints (`*safetensors*`, `*checkpoint*`), and cryptographic SSH identities (`id_rsa`, `id_ed25519`, `.pem`).
 
 ### 📊 Comprehensive Storage Analyzer
 - **Direct Windows API Probing**: Live query of logical disks (`Win32_LogicalDisk`) showing total capacity, used space, free space, and filesystem type (NTFS, FAT32, exFAT).
@@ -186,21 +194,29 @@ The output executable will be created in `dist/NexusFile-Portable.exe`.
 
 ## 🗂️ Default File Categories
 
-NexusFile classifies over 150 file types across 15 standard groups:
+NexusFile classifies over 200+ file formats and directory structures across dedicated high-efficiency groups:
 
-| Category | Primary Extensions & Signatures |
-|---|---|
-| **Documents** | `.pdf`, `.docx`, `.xlsx`, `.pptx`, `.txt`, `.md`, `.csv`, `.rtf`, `.odt` |
-| **Images** | `.jpg`, `.jpeg`, `.png`, `.gif`, `.svg`, `.webp`, `.bmp`, `.ico`, `.tiff` |
-| **Videos** | `.mp4`, `.mkv`, `.avi`, `.mov`, `.wmv`, `.flv`, `.webm`, `.m4v` |
-| **Audio** | `.mp3`, `.wav`, `.flac`, `.aac`, `.ogg`, `.m4a`, `.wma` |
-| **Archives** | `.zip`, `.rar`, `.7z`, `.tar`, `.gz`, `.bz2`, `.xz`, `.iso` |
-| **Code & Dev** | `.ts`, `.tsx`, `.js`, `.jsx`, `.rs`, `.py`, `.json`, `.yaml`, `.html`, `.css`, `.cpp` |
-| **Installers** | `.exe`, `.msi`, `.bat`, `.cmd`, `.ps1` |
-| **Torrents** | `.torrent` |
-| **Spreadsheets** | `.xls`, `.xlsx`, `.csv`, `.ods` |
-| **Presentations**| `.ppt`, `.pptx`, `.odp`, `.key` |
-| **Fonts** | `.ttf`, `.otf`, `.woff`, `.woff2` |
+| Category | Primary Extensions & Signatures | Description |
+|---|---|---|
+| **Codebases & Repositories** | `.git`, `package.json`, `Cargo.toml`, `pyproject.toml`, `go.mod`, `.gitbundle`, `.whl`, `.crate`, `.gem`, `.vsix` | Full software project roots, workspace packages, and repository bundles |
+| **Source Code & Scripts (`Codes`)** | `.rs`, `.ts`, `.tsx`, `.js`, `.py`, `.go`, `.c`, `.cpp`, `.cs`, `.java`, `.kt`, `.swift`, `.rb`, `.php`, `.sh`, `.ps1`, `.sql`, `Dockerfile`, `Makefile` | Multi-language source code, shell automation, styling, queries, and build definitions |
+| **AI & Machine Learning** | `.safetensors`, `.gguf`, `.onnx`, `.pt`, `.pth`, `.bin`, `.ckpt`, `.tflite`, `.h5`, `.keras`, `.mlmodel`, `GGUF` | Neural network weights, tensor checkpoints, quantized models, and inference graphs |
+| **Disk Images & VMs** | `.iso`, `.img`, `.vmdk`, `.vdi`, `.vhd`, `.vhdx`, `.qcow2`, `.ova`, `.ovf`, `.wim`, `.esd` | Bootable operating system installation media, optical discs, and VM containers |
+| **Security & Keys** | `.pem`, `.key`, `.crt`, `.cer`, `.pfx`, `.p12`, `.pub`, `.asc`, `id_rsa`, `id_ed25519`, `.kdbx` | Cryptographic identities, SSL/TLS certificates, SSH key pairs, and credential stores |
+| **Documents** | `.pdf`, `.doc`, `.docx`, `.txt`, `.rtf`, `.odt`, `.tex`, `%PDF` | Text documents, office files, manuscripts, and reports |
+| **Spreadsheets** | `.xls`, `.xlsx`, `.csv`, `.ods`, `.tsv`, `.xlsm` | Workbooks, financial sheets, and tabular records |
+| **Presentations** | `.ppt`, `.pptx`, `.odp`, `.key` | Slide decks and presentation deliverables |
+| **Images** | `.jpg`, `.jpeg`, `.png`, `.webp`, `.gif`, `.svg`, `.bmp`, `.raw`, `.cr2`, `.nef` | Digital photographs, vector artwork, screenshots, and web graphics |
+| **Videos** | `.mp4`, `.mkv`, `.mov`, `.avi`, `.webm`, `.wmv`, `.flv`, `.m4v` | HD recordings, screen captures, clips, and animation files |
+| **Audio** | `.mp3`, `.wav`, `.flac`, `.aac`, `.m4a`, `.ogg`, `ID3`, `fLaC` | Music tracks, podcast streams, sound effects, and lossless masterings |
+| **Archives** | `.zip`, `.rar`, `.7z`, `.tar`, `.gz`, `.bz2`, `.xz`, `.tgz`, `.zst`, `.cab` | Compressed file containers and multi-volume archives |
+| **Installers & Binaries** | `.exe`, `.msi`, `.msix`, `.appx`, `MZ`, `ELF` | Windows setup executables, portable runtimes, and system binaries |
+| **Design & 3D Assets** | `.psd`, `.ai`, `.eps`, `.fig`, `.blend`, `.obj`, `.fbx`, `.stl`, `.gltf`, `.step`, `.dwg`, `.dxf` | Layered graphics, vector artwork, 3D meshes, and engineering CAD models |
+| **Data & Databases** | `.sqlite`, `.sqlite3`, `.db`, `.parquet`, `.arrow`, `.feather`, `.jsonl`, `SQLite format 3` | Structured relational databases, columnar analytical tables, and data streams |
+| **BitTorrents** | `.torrent`, `d8:announce` | BitTorrent descriptors and decentralized package metadata |
+| **Fonts** | `.ttf`, `.otf`, `.woff`, `.woff2`, `.eot` | Digital typography and scalable outlines |
+| **E-Books** | `.epub`, `.mobi`, `.azw`, `.azw3`, `.djvu`, `.cbr`, `.cbz` | Digital publications, comic archives, and electronic manuals |
+| **Shortcuts & Links** | `.lnk`, `.url`, `.desktop` | Windows shell links and web shortcuts |
 
 ---
 

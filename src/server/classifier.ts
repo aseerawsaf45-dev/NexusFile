@@ -7,7 +7,7 @@ interface ClassificationResult {
   category: FileCategory;
   confidence: 'high' | 'medium' | 'low';
   detectedExtension: string;
-  matchedBy: 'magic_bytes' | 'extension' | 'keyword' | 'default';
+  matchedBy: 'magic_bytes' | 'extension' | 'keyword' | 'codebase_marker' | 'default';
   projectGuess?: string;
 }
 
@@ -23,6 +23,17 @@ const MAGIC_SIGNATURES: { category: FileCategory; signature: number[]; mask?: nu
   { category: 'Images', signature: [0x47, 0x49, 0x46, 0x38] },
   // WEBP: RIFF....WEBP
   { category: 'Images', signature: [0x52, 0x49, 0x46, 0x46] },
+  // GGUF (AI & Machine Learning quantized model): GGUF
+  { category: 'AI Models', signature: [0x47, 0x47, 0x55, 0x46] },
+  // WASM (WebAssembly): \0asm
+  { category: 'Codes', signature: [0x00, 0x61, 0x73, 0x6d] },
+  // SQLite format 3: SQLite format 3\0
+  {
+    category: 'Data',
+    signature: [0x53, 0x51, 0x4c, 0x69, 0x74, 0x65, 0x20, 0x66, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x20, 0x33, 0x00],
+  },
+  // Linux ELF executable: \x7fELF
+  { category: 'Installers', signature: [0x7f, 0x45, 0x4c, 0x46] },
   // ZIP (and Office docx/xlsx/pptx, jar): PK\x03\x04
   { category: 'Archives', signature: [0x50, 0x4b, 0x03, 0x04] },
   // RAR: Rar!\x1a\x07
@@ -42,15 +53,161 @@ const MAGIC_SIGNATURES: { category: FileCategory; signature: number[]; mask?: nu
   { category: 'Torrents', signature: [0x64, 0x31, 0x30, 0x3a, 0x63, 0x72, 0x65, 0x61, 0x74, 0x65, 0x64] },
 ];
 
+// Well-known codebase root markers to detect software repositories & projects
+const CODEBASE_MARKERS = [
+  '.git',
+  'package.json',
+  'Cargo.toml',
+  'pyproject.toml',
+  'requirements.txt',
+  'setup.py',
+  'Pipfile',
+  'go.mod',
+  'pom.xml',
+  'build.gradle',
+  'settings.gradle',
+  'CMakeLists.txt',
+  'Makefile',
+  'composer.json',
+  'Gemfile',
+  'mix.exs',
+  'tsconfig.json',
+  '.sln',
+  '.csproj',
+];
+
 export class FileClassifier {
   /**
-   * Classify a file using extension, magic bytes, and name patterns.
+   * Check if a directory is a software codebase or project repository.
+   */
+  public static classifyDirectory(dirPath: string): ClassificationResult | null {
+    try {
+      if (!fs.existsSync(dirPath)) return null;
+      const stat = fs.statSync(dirPath);
+      if (!stat.isDirectory()) return null;
+
+      const baseName = path.basename(dirPath);
+
+      // Check for codebase marker files/folders inside the directory
+      for (const marker of CODEBASE_MARKERS) {
+        const markerPath = path.join(dirPath, marker);
+        if (fs.existsSync(markerPath)) {
+          return {
+            category: 'Codebases',
+            confidence: 'high',
+            detectedExtension: 'project',
+            matchedBy: 'codebase_marker',
+            projectGuess: baseName,
+          };
+        }
+      }
+
+      // Check for common source folder layout (src/ + test/ or lib/)
+      const hasSrc = fs.existsSync(path.join(dirPath, 'src'));
+      const hasLib = fs.existsSync(path.join(dirPath, 'lib'));
+      const hasTests = fs.existsSync(path.join(dirPath, 'tests')) || fs.existsSync(path.join(dirPath, 'test'));
+      if (hasSrc && (hasLib || hasTests)) {
+        return {
+          category: 'Codebases',
+          confidence: 'medium',
+          detectedExtension: 'project',
+          matchedBy: 'codebase_marker',
+          projectGuess: baseName,
+        };
+      }
+    } catch {
+      // Fallback
+    }
+    return null;
+  }
+
+  /**
+   * Classify a file or directory using extension, magic bytes, codebase markers, and name patterns.
    */
   public static classify(filePath: string): ClassificationResult {
     const filename = path.basename(filePath);
+    const lowerName = filename.toLowerCase();
+
+    // 0. Check if path is a directory and represents a codebase
+    try {
+      if (fs.existsSync(filePath)) {
+        const stat = fs.statSync(filePath);
+        if (stat.isDirectory()) {
+          const dirResult = this.classifyDirectory(filePath);
+          if (dirResult) return dirResult;
+          return {
+            category: 'Documents',
+            confidence: 'low',
+            detectedExtension: 'folder',
+            matchedBy: 'default',
+            projectGuess: filename,
+          };
+        }
+      }
+    } catch {}
+
     const ext = this.extractExtension(filename);
 
-    // 1. Check Magic Bytes (safe reading of first 32 bytes)
+    // 1. Direct codebase bundle extensions (npm packages, wheels, crates, git bundles)
+    const codebaseBundleExts = ['gitbundle', 'whl', 'crate', 'gem', 'nupkg', 'vsix'];
+    if (codebaseBundleExts.includes(ext)) {
+      return {
+        category: 'Codebases',
+        confidence: 'high',
+        detectedExtension: ext,
+        matchedBy: 'extension',
+        projectGuess: this.extractProjectKeyword(filename),
+      };
+    }
+
+    // 2. Extensionless and exact developer source / config files
+    const exactCodeFiles = [
+      'dockerfile',
+      'makefile',
+      'gemfile',
+      'jenkinsfile',
+      'vagrantfile',
+      'procfile',
+      'cmakelists.txt',
+      '.gitignore',
+      '.gitattributes',
+      '.editorconfig',
+      '.env',
+      'cargo.lock',
+      'package-lock.json',
+      'pnpm-lock.yaml',
+      'yarn.lock',
+    ];
+    if (exactCodeFiles.includes(lowerName)) {
+      return {
+        category: 'Codes',
+        confidence: 'high',
+        detectedExtension: ext || 'code',
+        matchedBy: 'keyword',
+        projectGuess: this.extractProjectKeyword(filename),
+      };
+    }
+
+    // 3. Security keys / SSH / certs filenames
+    if (
+      lowerName === 'id_rsa' ||
+      lowerName === 'id_ed25519' ||
+      lowerName === 'authorized_keys' ||
+      lowerName === 'known_hosts' ||
+      lowerName.endsWith('.pem') ||
+      lowerName.endsWith('.key') ||
+      lowerName.endsWith('.crt')
+    ) {
+      return {
+        category: 'Security',
+        confidence: 'high',
+        detectedExtension: ext || 'key',
+        matchedBy: 'keyword',
+        projectGuess: this.extractProjectKeyword(filename),
+      };
+    }
+
+    // 4. Check Magic Bytes (safe reading of first 64 bytes)
     const magicMatch = this.checkMagicBytes(filePath, ext);
     if (magicMatch) {
       return {
@@ -62,7 +219,7 @@ export class FileClassifier {
       };
     }
 
-    // 2. Extension matching against default categories
+    // 5. Extension matching against default categories
     if (ext) {
       for (const cat of DEFAULT_CATEGORIES) {
         if (cat.extensions.includes(ext)) {
@@ -77,9 +234,29 @@ export class FileClassifier {
       }
     }
 
-    // 3. Filename heuristics
-    const lowerName = filename.toLowerCase();
-    if (lowerName.includes('invoice') || lowerName.includes('receipt') || lowerName.includes('statement') || lowerName.includes('resume')) {
+    // 6. Filename heuristics
+    if (
+      lowerName.includes('safetensors') ||
+      lowerName.includes('checkpoint') ||
+      lowerName.includes('weights') ||
+      lowerName.includes('gguf') ||
+      lowerName.includes('pytorch_model')
+    ) {
+      return {
+        category: 'AI Models',
+        confidence: 'high',
+        detectedExtension: ext,
+        matchedBy: 'keyword',
+        projectGuess: this.extractProjectKeyword(filename),
+      };
+    }
+
+    if (
+      lowerName.includes('invoice') ||
+      lowerName.includes('receipt') ||
+      lowerName.includes('statement') ||
+      lowerName.includes('resume')
+    ) {
       return {
         category: 'Documents',
         confidence: 'medium',
@@ -130,8 +307,22 @@ export class FileClassifier {
       // BitTorrent: starts with bencoded dict 'd' (0x64) and contains 'announce', 'info', 'pieces', or 'comment'
       if (slice.length >= 8 && slice[0] === 0x64) {
         const text = slice.toString('latin1');
-        if (text.includes('announce') || text.includes('info') || text.includes('piece') || text.includes('comment') || ext === 'torrent') {
+        if (
+          text.includes('announce') ||
+          text.includes('info') ||
+          text.includes('piece') ||
+          text.includes('comment') ||
+          ext === 'torrent'
+        ) {
           return 'Torrents';
+        }
+      }
+
+      // Cryptographic PEM files: text beginning with '-----BEGIN '
+      if (slice.length >= 11) {
+        const textStart = slice.toString('utf8');
+        if (textStart.startsWith('-----BEGIN ')) {
+          return 'Security';
         }
       }
 

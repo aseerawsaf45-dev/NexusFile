@@ -19,10 +19,16 @@ import {
   X,
   Check,
   ExternalLink,
+  FolderGit2,
+  Code2,
+  Cpu,
+  Disc,
+  ShieldCheck,
 } from 'lucide-react';
 import { AppShell } from '@/components/layout/AppShell';
 import { apiClient } from '@/lib/api-client';
 import { MonitoredLocation, ExplorerFileItem } from '@/lib/types';
+import { DEFAULT_CATEGORIES } from '@/lib/constants';
 import { formatBytes, formatDate } from '@/lib/utils';
 
 export default function FileExplorerPage() {
@@ -359,19 +365,14 @@ export default function FileExplorerPage() {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="px-3 py-2 text-xs bg-card border border-border rounded-lg text-foreground"
+              className="px-3 py-2 text-xs bg-card border border-border rounded-lg text-foreground focus:border-primary outline-none"
             >
-              <option value="all">All Categories</option>
-              <option value="Torrents">Torrent Files (.torrent)</option>
-              <option value="Documents">Documents</option>
-              <option value="Spreadsheets">Spreadsheets</option>
-              <option value="Images">Images</option>
-              <option value="Videos">Videos</option>
-              <option value="Audio">Audio</option>
-              <option value="Archives">Archives</option>
-              <option value="Installers">Installers</option>
-              <option value="Development">Development</option>
-              <option value="Unknown">Unknown</option>
+              <option value="all">All Categories ({DEFAULT_CATEGORIES.length})</option>
+              {DEFAULT_CATEGORIES.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -425,6 +426,11 @@ export default function FileExplorerPage() {
                 filteredItems.map((item) => {
                   const isChecked = selectedFiles.includes(item.path);
                   const isTorrent = item.category === 'Torrents' || item.name.toLowerCase().endsWith('.torrent');
+                  const isCodebase = item.category === 'Codebases';
+                  const isCode = item.category === 'Codes' || item.category === 'Development';
+                  const isAI = item.category === 'AI Models';
+                  const isDiskImage = item.category === 'Disk Images';
+                  const isSecurity = item.category === 'Security';
 
                   return (
                     <tr
@@ -453,9 +459,23 @@ export default function FileExplorerPage() {
                           }`}
                         >
                           {item.isDirectory ? (
-                            <Folder className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                            isCodebase ? (
+                              <FolderGit2 className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                            ) : (
+                              <Folder className="w-4 h-4 text-amber-500 flex-shrink-0" />
+                            )
                           ) : isTorrent ? (
                             <DownloadCloud className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                          ) : isCodebase ? (
+                            <FolderGit2 className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                          ) : isCode ? (
+                            <Code2 className="w-4 h-4 text-cyan-500 flex-shrink-0" />
+                          ) : isAI ? (
+                            <Cpu className="w-4 h-4 text-purple-500 flex-shrink-0" />
+                          ) : isDiskImage ? (
+                            <Disc className="w-4 h-4 text-rose-500 flex-shrink-0" />
+                          ) : isSecurity ? (
+                            <ShieldCheck className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                           ) : (
                             <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
                           )}
@@ -463,10 +483,20 @@ export default function FileExplorerPage() {
                         </div>
                       </td>
                       <td className="py-2.5 px-3">
-                        {!item.isDirectory && (
+                        {(!item.isDirectory || isCodebase) && (
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                               isTorrent
+                                ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                                : isCodebase
+                                ? 'bg-orange-500/10 text-orange-500 border border-orange-500/20'
+                                : isCode
+                                ? 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20'
+                                : isAI
+                                ? 'bg-purple-500/10 text-purple-500 border border-purple-500/20'
+                                : isDiskImage
+                                ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20'
+                                : isSecurity
                                 ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
                                 : 'bg-secondary text-muted-foreground'
                             }`}
