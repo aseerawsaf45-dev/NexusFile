@@ -25,6 +25,7 @@ import {
   FileText,
   Layers,
   ArrowUpDown,
+  Film,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -74,7 +75,8 @@ export function Sidebar() {
         pathname.startsWith('/explorer') ||
         pathname.startsWith('/review') ||
         pathname.startsWith('/templates') ||
-        pathname.startsWith('/history')
+        pathname.startsWith('/history') ||
+        pathname.startsWith('/video')
       ) {
         setCollapsed((prev) => ({ ...prev, sorting: false }));
       } else if (pathname.startsWith('/cleaner')) {
@@ -139,6 +141,7 @@ export function Sidebar() {
         { href: '/review', label: 'Review Queue', icon: AlertTriangle, badge: reviewCount, badgeColor: 'bg-amber-500' },
         { href: '/templates', label: 'Templates', icon: FolderTree },
         { href: '/history', label: 'Activity History', icon: Clock },
+        { href: '/video', label: 'SaaS Video Reel', icon: Film },
       ],
     },
     {

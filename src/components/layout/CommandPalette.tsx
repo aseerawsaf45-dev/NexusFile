@@ -15,6 +15,7 @@ import {
   X,
   ArrowRight,
   HardDrive,
+  Film,
 } from 'lucide-react';
 import { apiClient } from '@/lib/api-client';
 
@@ -109,6 +110,15 @@ export function CommandPalette({ isOpen, onClose }: CommandPaletteProps) {
       action: () => {
         onClose();
         router.push('/history');
+      },
+    },
+    {
+      label: 'SaaS Category Video Showcase & Demo',
+      category: 'Showcase',
+      icon: Film,
+      action: () => {
+        onClose();
+        router.push('/video');
       },
     },
     {

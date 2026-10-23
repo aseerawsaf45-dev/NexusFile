@@ -22,6 +22,14 @@
 
 ---
 
+## 🎬 SaaS Category Studio & Product Motion Reel
+
+[![NexusFile SaaS Category Studio](docs/screenshots/saas-video-banner.png)](https://github.com/aseerawsaf45-dev/NexusFile)
+
+NexusFile includes a built-in **Interactive SaaS Category Video Studio** with 60 FPS motion animations, real-time narration subtitles, audio synthesizer chimes, dynamic scene scrubbing, and instant **WebM video export** via HTML5 MediaRecorder.
+
+---
+
 ## 📸 Visual Tour
 
 ### 1. Modern Control Center & Instant 1-Click Folder Organizer
