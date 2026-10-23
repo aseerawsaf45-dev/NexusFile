@@ -1,0 +1,82 @@
+{
+  "name": "nexusfile",
+  "version": "1.0.0",
+  "description": "High-Performance Automated File Management & Storage Studio for Windows",
+  "author": "NexusFile",
+  "private": true,
+  "main": "electron/main.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "bundle:server": "esbuild src/server/api-server.ts --bundle --platform=node --target=node20 --outfile=electron/server.bundle.js --external:node:sqlite",
+    "build:msi": "npm run build && npm run bundle:server && electron-builder --win msi --x64",
+    "build:portable": "npm run build && npm run bundle:server && electron-builder --win portable --x64",
+    "start": "next start",
+    "lint": "next lint",
+    "test": "vitest run",
+    "server": "tsx src/server/api-server.ts",
+    "desktop": "concurrently -k \"tsx src/server/api-server.ts\" \"next dev -p 3000\" \"electron electron/main.js\"",
+    "desktop:app": "electron electron/main.js",
+    "rust:test": "cargo test --manifest-path nexusfile-core/Cargo.toml"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2.2.0",
+    "@tauri-apps/plugin-dialog": "^2.2.0",
+    "@tauri-apps/plugin-notification": "^2.2.0",
+    "@tauri-apps/plugin-shell": "^2.2.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.460.0",
+    "next": "14.2.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "recharts": "^2.13.3",
+    "tailwind-merge": "^2.5.4"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.1.0",
+    "@testing-library/react": "^16.0.1",
+    "@types/node": "^20.17.6",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^10.0.6",
+    "electron": "^33.2.0",
+    "electron-builder": "^26.15.3",
+    "postcss": "^8.4.47",
+    "tailwindcss": "^3.4.14",
+    "tsx": "^4.23.15",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.4"
+  },
+  "build": {
+    "appId": "com.nexusfile.desktop",
+    "productName": "NexusFile",
+    "copyright": "Copyright © 2026 NexusFile",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "out/**/*",
+      "index.js",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "electron/server.bundle.js"
+    ],
+    "win": {
+      "icon": "build/icon.ico",
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "NexusFile-Portable.exe"
+    }
+  }
+}
