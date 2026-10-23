@@ -28,6 +28,8 @@
 
 NexusFile includes a built-in **Interactive SaaS Category Video Studio** with 60 FPS motion animations, real-time narration subtitles, audio synthesizer chimes, dynamic scene scrubbing, and instant **WebM video export** via HTML5 MediaRecorder.
 
+▶️ **[Download / Watch SaaS Category Demo Video (MP4, 1080p)](docs/NexusFile-SaaS-Categories-Demo.mp4)**
+
 ---
 
 ## 📸 Visual Tour
