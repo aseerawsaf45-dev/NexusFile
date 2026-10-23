@@ -95,7 +95,7 @@ export function startApiServer(): Promise<http.Server> {
           const id = locationMatch[1];
           const body = await getBody();
           dbOperations.updateLocation(id, body);
-          if (body.enabled !== undefined || body.recursive !== undefined) {
+          if (body.enabled !== undefined || body.recursive !== undefined || body.path !== undefined) {
             DirectoryMonitorService.reloadWatchers();
           }
           return sendJson(200, { success: true });

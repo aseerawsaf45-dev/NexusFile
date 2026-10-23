@@ -301,14 +301,23 @@ export class DirectoryMonitorService {
       } catch {}
     }
 
+    // Filter candidate files by allowedCategories if specified
+    const hasCategoryFilter = allowedCategories && allowedCategories.length > 0 && !allowedCategories.includes('all');
+    const filteredFiles = hasCategoryFilter
+      ? candidateFiles.filter((file) => {
+          const classification = FileClassifier.classify(file);
+          return allowedCategories.includes(classification.category);
+        })
+      : candidateFiles;
+
     let organizedCount = 0;
-    let skippedCount = 0;
+    let skippedCount = candidateFiles.length - filteredFiles.length;
     const items: Array<{ original: string; destination: string; category: string; status: string }> = [];
 
     // Process concurrently in chunks of 10 for peak I/O performance
     const CHUNK_SIZE = 10;
-    for (let i = 0; i < candidateFiles.length; i += CHUNK_SIZE) {
-      const chunk = candidateFiles.slice(i, i + CHUNK_SIZE);
+    for (let i = 0; i < filteredFiles.length; i += CHUNK_SIZE) {
+      const chunk = filteredFiles.slice(i, i + CHUNK_SIZE);
       await Promise.all(
         chunk.map(async (file) => {
           try {

@@ -149,6 +149,25 @@ export class StorageAnalyzerService {
         throw new Error('Scan cancelled by user');
       }
 
+      // Hard recursion depth ceiling to protect against call stack overflow or infinite loops
+      if (currentDepth > 32) {
+        return {
+          id: currentPath,
+          name: path.basename(currentPath) || currentPath,
+          path: currentPath,
+          isDirectory: true,
+          logicalSize: 0,
+          fileCount: 0,
+          dirCount: 0,
+          percentOfParent: 0,
+          percentOfTotal: 0,
+          lastModified: new Date().toISOString(),
+          isPartial: true,
+          hasChildren: false,
+          children: [],
+        };
+      }
+
       // Detect junction loops
       let realPath = currentPath;
       try {

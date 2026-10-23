@@ -25,6 +25,16 @@ export function AppShell({ title, subtitle, children, onRefresh }: AppShellProps
         setIsOnboardingOpen(true);
       }
     }
+
+    // Global shortcut: Ctrl+K / Cmd+K to toggle Command Palette from anywhere
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setIsCommandPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
   }, []);
 
   const handleCompleteOnboarding = () => {

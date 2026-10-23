@@ -364,12 +364,14 @@ export const dbOperations = {
     const values: any[] = [];
 
     if (updates.name !== undefined) { fields.push('name = ?'); values.push(updates.name); }
+    if (updates.path !== undefined) { fields.push('path = ?'); values.push(updates.path); }
     if (updates.enabled !== undefined) { fields.push('enabled = ?'); values.push(updates.enabled ? 1 : 0); }
     if (updates.recursive !== undefined) { fields.push('recursive = ?'); values.push(updates.recursive ? 1 : 0); }
     if (updates.folderMode !== undefined) { fields.push('folder_mode = ?'); values.push(updates.folderMode); }
     if (updates.destinationTemplate !== undefined) { fields.push('destination_template = ?'); values.push(updates.destinationTemplate); }
     if (updates.targetDirectory !== undefined) { fields.push('target_directory = ?'); values.push(updates.targetDirectory || null); }
     if (updates.status !== undefined) { fields.push('status = ?'); values.push(updates.status); }
+    if (updates.errorMessage !== undefined) { fields.push('error_message = ?'); values.push(updates.errorMessage); }
     if (updates.lastScannedAt !== undefined) { fields.push('last_scanned_at = ?'); values.push(updates.lastScannedAt); }
     if (updates.itemCount !== undefined) { fields.push('item_count = ?'); values.push(updates.itemCount); }
 
@@ -813,7 +815,8 @@ export const dbOperations = {
     const db = getDatabase();
     let row: any;
     if (rootPath) {
-      row = db.prepare('SELECT * FROM storage_scans WHERE root_path = ? ORDER BY started_at DESC LIMIT 1').get(rootPath);
+      const normalized = path.resolve(rootPath);
+      row = db.prepare('SELECT * FROM storage_scans WHERE (root_path = ? COLLATE NOCASE OR root_path = ? COLLATE NOCASE) ORDER BY started_at DESC LIMIT 1').get(rootPath, normalized);
     } else {
       row = db.prepare('SELECT * FROM storage_scans ORDER BY started_at DESC LIMIT 1').get();
     }

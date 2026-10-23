@@ -302,6 +302,26 @@ export class SafeFileOperations {
       const destRoot = path.parse(normDest).root.toLowerCase();
 
       if (sourceRoot === destRoot) {
+        if (fs.existsSync(normDest)) {
+          // On Windows, fs.renameSync throws EPERM/EEXIST if destination exists.
+          // Safely unlink destination first to permit clean overwrite.
+          try {
+            fs.unlinkSync(normDest);
+          } catch {
+            // If unlink fails, fall back to cross-volume copy+unlink
+            fs.copyFileSync(normSource, normDest);
+            fs.unlinkSync(normSource);
+            return {
+              success: true,
+              operationType: 'move',
+              originalPath: normSource,
+              finalPath: normDest,
+              fileSize,
+              contentHash: sourceHash,
+              status: 'success',
+            };
+          }
+        }
         fs.renameSync(normSource, normDest);
       } else {
         // Cross-volume: copy, verify hash/size, then remove source

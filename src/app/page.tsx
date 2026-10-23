@@ -534,7 +534,7 @@ export default function OverviewPage() {
                       fontSize={11}
                       tickLine={false}
                       axisLine={false}
-                      width={80}
+                      width={100}
                     />
                     <Tooltip
                       contentStyle={{
