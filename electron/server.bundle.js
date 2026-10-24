@@ -99,7 +99,7 @@ var DEFAULT_CATEGORIES = [
     id: "Archives",
     name: "Archives",
     description: "Compressed containers and disk archives",
-    extensions: ["zip", "rar", "7z", "tar", "gz", "bz2", "xz", "iso", "tgz"],
+    extensions: ["zip", "rar", "7z", "tar", "gz", "bz2", "xz", "tgz", "zst", "cab"],
     color: "#eab308",
     iconName: "Archive"
   },
@@ -112,18 +112,123 @@ var DEFAULT_CATEGORIES = [
     iconName: "Package"
   },
   {
+    id: "Codebases",
+    name: "Codebases & Repositories",
+    description: "Git repositories, workspace projects, code bundles, and language packages",
+    extensions: ["gitbundle", "whl", "crate", "gem", "nupkg", "vsix", "bundle"],
+    color: "#f97316",
+    iconName: "FolderGit2"
+  },
+  {
+    id: "Codes",
+    name: "Source Code & Scripts",
+    description: "Programming source files, web scripts, styling, queries, and build scripts",
+    extensions: [
+      "py",
+      "pyw",
+      "js",
+      "mjs",
+      "cjs",
+      "ts",
+      "mts",
+      "cts",
+      "jsx",
+      "tsx",
+      "rs",
+      "go",
+      "c",
+      "cpp",
+      "cc",
+      "cxx",
+      "h",
+      "hpp",
+      "cs",
+      "java",
+      "kt",
+      "kts",
+      "swift",
+      "rb",
+      "php",
+      "lua",
+      "pl",
+      "pm",
+      "sh",
+      "bash",
+      "zsh",
+      "fish",
+      "ps1",
+      "psm1",
+      "bat",
+      "cmd",
+      "vbs",
+      "html",
+      "htm",
+      "css",
+      "scss",
+      "sass",
+      "less",
+      "vue",
+      "svelte",
+      "json",
+      "json5",
+      "jsonc",
+      "yaml",
+      "yml",
+      "toml",
+      "ini",
+      "env",
+      "sql",
+      "prisma",
+      "graphql",
+      "gql",
+      "ipynb",
+      "asm",
+      "s",
+      "wasm",
+      "dockerfile",
+      "makefile",
+      "cmake"
+    ],
+    color: "#06b6d4",
+    iconName: "Code2"
+  },
+  {
+    id: "AI Models",
+    name: "AI & Machine Learning",
+    description: "Neural network checkpoints, Safetensors, ONNX graphs, and GGUF quants",
+    extensions: ["safetensors", "onnx", "pt", "pth", "bin", "gguf", "ggml", "ckpt", "tflite", "h5", "keras", "mlmodel", "weights", "joblib"],
+    color: "#a855f7",
+    iconName: "Cpu"
+  },
+  {
+    id: "Disk Images",
+    name: "Disk Images & VMs",
+    description: "Operating system ISOs, bootable media, and virtual machine disk containers",
+    extensions: ["iso", "img", "vmdk", "vdi", "vhd", "vhdx", "qcow2", "ova", "ovf", "wim", "esd"],
+    color: "#e11d48",
+    iconName: "Disc"
+  },
+  {
+    id: "Security",
+    name: "Security & Keys",
+    description: "Cryptographic keys, SSH identities, SSL/TLS certificates, and password vaults",
+    extensions: ["pem", "key", "crt", "cer", "pfx", "p12", "pub", "asc", "sig", "gpg", "kdbx", "ovpn"],
+    color: "#10b981",
+    iconName: "ShieldCheck"
+  },
+  {
     id: "Development",
-    name: "Development",
-    description: "Source code, markup, scripts, and configuration formats",
-    extensions: ["py", "js", "ts", "jsx", "tsx", "html", "css", "rs", "java", "c", "cpp", "h", "hpp", "cs", "go", "json", "yaml", "yml", "toml", "sh", "bat", "ps1", "sql"],
+    name: "Development (Legacy)",
+    description: "General development artifacts (retained for backward compatibility)",
+    extensions: ["py", "js", "ts", "jsx", "tsx", "rs", "go", "c", "cpp", "java", "cs"],
     color: "#0284c7",
     iconName: "Code"
   },
   {
     id: "Design",
-    name: "Design & Creative",
-    description: "Professional creative projects, 3D models, and vector files",
-    extensions: ["psd", "ai", "eps", "indd", "fig", "blend", "sketch", "dwg", "dxf", "c4d"],
+    name: "Design & 3D Assets",
+    description: "Layered artwork, vector designs, 3D meshes, CAD files, and digital models",
+    extensions: ["psd", "ai", "eps", "indd", "fig", "blend", "sketch", "dwg", "dxf", "c4d", "obj", "fbx", "stl", "gltf", "glb", "step", "stp"],
     color: "#f43f5e",
     iconName: "Palette"
   },
@@ -131,15 +236,15 @@ var DEFAULT_CATEGORIES = [
     id: "Fonts",
     name: "Fonts",
     description: "Digital typography and outline fonts",
-    extensions: ["ttf", "otf", "woff", "woff2", "eot"],
+    extensions: ["ttf", "otf", "woff", "woff2", "eot", "fon"],
     color: "#6366f1",
     iconName: "Type"
   },
   {
     id: "Data",
     name: "Data & Databases",
-    description: "Structured datasets, binary tables, and databases",
-    extensions: ["db", "sqlite", "sqlite3", "parquet", "xml", "mdb", "accdb", "feather"],
+    description: "Structured datasets, SQLite databases, columnar tables, and data streams",
+    extensions: ["db", "sqlite", "sqlite3", "parquet", "arrow", "feather", "ndjson", "jsonl", "xml", "mdb", "accdb", "rdata", "rds"],
     color: "#14b8a6",
     iconName: "Database"
   },
@@ -147,7 +252,7 @@ var DEFAULT_CATEGORIES = [
     id: "Ebooks",
     name: "E-Books",
     description: "Electronic books and publication formats",
-    extensions: ["epub", "mobi", "azw", "azw3", "djvu", "cbr", "cbz"],
+    extensions: ["epub", "mobi", "azw", "azw3", "djvu", "cbr", "cbz", "fb2"],
     color: "#d97706",
     iconName: "BookOpen"
   },
@@ -155,7 +260,7 @@ var DEFAULT_CATEGORIES = [
     id: "Shortcuts",
     name: "Shortcuts & Links",
     description: "Windows desktop shortcuts and internet links",
-    extensions: ["lnk", "url"],
+    extensions: ["lnk", "url", "desktop"],
     color: "#64748b",
     iconName: "Link"
   },
@@ -578,6 +683,10 @@ var dbOperations = {
       fields.push("name = ?");
       values.push(updates.name);
     }
+    if (updates.path !== void 0) {
+      fields.push("path = ?");
+      values.push(updates.path);
+    }
     if (updates.enabled !== void 0) {
       fields.push("enabled = ?");
       values.push(updates.enabled ? 1 : 0);
@@ -601,6 +710,10 @@ var dbOperations = {
     if (updates.status !== void 0) {
       fields.push("status = ?");
       values.push(updates.status);
+    }
+    if (updates.errorMessage !== void 0) {
+      fields.push("error_message = ?");
+      values.push(updates.errorMessage);
     }
     if (updates.lastScannedAt !== void 0) {
       fields.push("last_scanned_at = ?");
@@ -1003,7 +1116,8 @@ var dbOperations = {
     const db = getDatabase();
     let row;
     if (rootPath) {
-      row = db.prepare("SELECT * FROM storage_scans WHERE root_path = ? ORDER BY started_at DESC LIMIT 1").get(rootPath);
+      const normalized = import_node_path.default.resolve(rootPath);
+      row = db.prepare("SELECT * FROM storage_scans WHERE (root_path = ? COLLATE NOCASE OR root_path = ? COLLATE NOCASE) ORDER BY started_at DESC LIMIT 1").get(rootPath, normalized);
     } else {
       row = db.prepare("SELECT * FROM storage_scans ORDER BY started_at DESC LIMIT 1").get();
     }
@@ -1121,6 +1235,17 @@ var MAGIC_SIGNATURES = [
   { category: "Images", signature: [71, 73, 70, 56] },
   // WEBP: RIFF....WEBP
   { category: "Images", signature: [82, 73, 70, 70] },
+  // GGUF (AI & Machine Learning quantized model): GGUF
+  { category: "AI Models", signature: [71, 71, 85, 70] },
+  // WASM (WebAssembly): \0asm
+  { category: "Codes", signature: [0, 97, 115, 109] },
+  // SQLite format 3: SQLite format 3\0
+  {
+    category: "Data",
+    signature: [83, 81, 76, 105, 116, 101, 32, 102, 111, 114, 109, 97, 116, 32, 51, 0]
+  },
+  // Linux ELF executable: \x7fELF
+  { category: "Installers", signature: [127, 69, 76, 70] },
   // ZIP (and Office docx/xlsx/pptx, jar): PK\x03\x04
   { category: "Archives", signature: [80, 75, 3, 4] },
   // RAR: Rar!\x1a\x07
@@ -1139,13 +1264,134 @@ var MAGIC_SIGNATURES = [
   { category: "Torrents", signature: [100, 49, 51, 58, 97, 110, 110, 111, 117, 110, 99, 101] },
   { category: "Torrents", signature: [100, 49, 48, 58, 99, 114, 101, 97, 116, 101, 100] }
 ];
+var CODEBASE_MARKERS = [
+  ".git",
+  "package.json",
+  "Cargo.toml",
+  "pyproject.toml",
+  "requirements.txt",
+  "setup.py",
+  "Pipfile",
+  "go.mod",
+  "pom.xml",
+  "build.gradle",
+  "settings.gradle",
+  "CMakeLists.txt",
+  "Makefile",
+  "composer.json",
+  "Gemfile",
+  "mix.exs",
+  "tsconfig.json",
+  ".sln",
+  ".csproj"
+];
 var FileClassifier = class {
   /**
-   * Classify a file using extension, magic bytes, and name patterns.
+   * Check if a directory is a software codebase or project repository.
+   */
+  static classifyDirectory(dirPath) {
+    try {
+      if (!import_node_fs2.default.existsSync(dirPath)) return null;
+      const stat = import_node_fs2.default.statSync(dirPath);
+      if (!stat.isDirectory()) return null;
+      const baseName = import_node_path2.default.basename(dirPath);
+      for (const marker of CODEBASE_MARKERS) {
+        const markerPath = import_node_path2.default.join(dirPath, marker);
+        if (import_node_fs2.default.existsSync(markerPath)) {
+          return {
+            category: "Codebases",
+            confidence: "high",
+            detectedExtension: "project",
+            matchedBy: "codebase_marker",
+            projectGuess: baseName
+          };
+        }
+      }
+      const hasSrc = import_node_fs2.default.existsSync(import_node_path2.default.join(dirPath, "src"));
+      const hasLib = import_node_fs2.default.existsSync(import_node_path2.default.join(dirPath, "lib"));
+      const hasTests = import_node_fs2.default.existsSync(import_node_path2.default.join(dirPath, "tests")) || import_node_fs2.default.existsSync(import_node_path2.default.join(dirPath, "test"));
+      if (hasSrc && (hasLib || hasTests)) {
+        return {
+          category: "Codebases",
+          confidence: "medium",
+          detectedExtension: "project",
+          matchedBy: "codebase_marker",
+          projectGuess: baseName
+        };
+      }
+    } catch {
+    }
+    return null;
+  }
+  /**
+   * Classify a file or directory using extension, magic bytes, codebase markers, and name patterns.
    */
   static classify(filePath) {
     const filename = import_node_path2.default.basename(filePath);
+    const lowerName = filename.toLowerCase();
+    try {
+      if (import_node_fs2.default.existsSync(filePath)) {
+        const stat = import_node_fs2.default.statSync(filePath);
+        if (stat.isDirectory()) {
+          const dirResult = this.classifyDirectory(filePath);
+          if (dirResult) return dirResult;
+          return {
+            category: "Documents",
+            confidence: "low",
+            detectedExtension: "folder",
+            matchedBy: "default",
+            projectGuess: filename
+          };
+        }
+      }
+    } catch {
+    }
     const ext = this.extractExtension(filename);
+    const codebaseBundleExts = ["gitbundle", "whl", "crate", "gem", "nupkg", "vsix"];
+    if (codebaseBundleExts.includes(ext)) {
+      return {
+        category: "Codebases",
+        confidence: "high",
+        detectedExtension: ext,
+        matchedBy: "extension",
+        projectGuess: this.extractProjectKeyword(filename)
+      };
+    }
+    const exactCodeFiles = [
+      "dockerfile",
+      "makefile",
+      "gemfile",
+      "jenkinsfile",
+      "vagrantfile",
+      "procfile",
+      "cmakelists.txt",
+      ".gitignore",
+      ".gitattributes",
+      ".editorconfig",
+      ".env",
+      "cargo.lock",
+      "package-lock.json",
+      "pnpm-lock.yaml",
+      "yarn.lock"
+    ];
+    if (exactCodeFiles.includes(lowerName)) {
+      return {
+        category: "Codes",
+        confidence: "high",
+        detectedExtension: ext || "code",
+        matchedBy: "keyword",
+        projectGuess: this.extractProjectKeyword(filename)
+      };
+    }
+    if (lowerName === "id_rsa" || lowerName === "id_ed25519" || lowerName === "authorized_keys" || lowerName === "known_hosts" || lowerName.endsWith(".pem") || lowerName.endsWith(".key") || lowerName.endsWith(".crt")) {
+      return {
+        category: "Security",
+        confidence: "high",
+        detectedExtension: ext || "key",
+        matchedBy: "keyword",
+        projectGuess: this.extractProjectKeyword(filename)
+      };
+    }
     const magicMatch = this.checkMagicBytes(filePath, ext);
     if (magicMatch) {
       return {
@@ -1169,7 +1415,15 @@ var FileClassifier = class {
         }
       }
     }
-    const lowerName = filename.toLowerCase();
+    if (lowerName.includes("safetensors") || lowerName.includes("checkpoint") || lowerName.includes("weights") || lowerName.includes("gguf") || lowerName.includes("pytorch_model")) {
+      return {
+        category: "AI Models",
+        confidence: "high",
+        detectedExtension: ext,
+        matchedBy: "keyword",
+        projectGuess: this.extractProjectKeyword(filename)
+      };
+    }
     if (lowerName.includes("invoice") || lowerName.includes("receipt") || lowerName.includes("statement") || lowerName.includes("resume")) {
       return {
         category: "Documents",
@@ -1215,6 +1469,12 @@ var FileClassifier = class {
         const text = slice.toString("latin1");
         if (text.includes("announce") || text.includes("info") || text.includes("piece") || text.includes("comment") || ext === "torrent") {
           return "Torrents";
+        }
+      }
+      if (slice.length >= 11) {
+        const textStart = slice.toString("utf8");
+        if (textStart.startsWith("-----BEGIN ")) {
+          return "Security";
         }
       }
       if (["docx", "odt"].includes(ext)) return "Documents";
@@ -1681,6 +1941,23 @@ var SafeFileOperations = class {
       const sourceRoot = import_node_path4.default.parse(normSource).root.toLowerCase();
       const destRoot = import_node_path4.default.parse(normDest).root.toLowerCase();
       if (sourceRoot === destRoot) {
+        if (import_node_fs4.default.existsSync(normDest)) {
+          try {
+            import_node_fs4.default.unlinkSync(normDest);
+          } catch {
+            import_node_fs4.default.copyFileSync(normSource, normDest);
+            import_node_fs4.default.unlinkSync(normSource);
+            return {
+              success: true,
+              operationType: "move",
+              originalPath: normSource,
+              finalPath: normDest,
+              fileSize,
+              contentHash: sourceHash,
+              status: "success"
+            };
+          }
+        }
         import_node_fs4.default.renameSync(normSource, normDest);
       } else {
         import_node_fs4.default.copyFileSync(normSource, normDest);
@@ -1972,12 +2249,17 @@ var DirectoryMonitorService = class {
       } catch {
       }
     }
+    const hasCategoryFilter = allowedCategories && allowedCategories.length > 0 && !allowedCategories.includes("all");
+    const filteredFiles = hasCategoryFilter ? candidateFiles.filter((file) => {
+      const classification = FileClassifier.classify(file);
+      return allowedCategories.includes(classification.category);
+    }) : candidateFiles;
     let organizedCount = 0;
-    let skippedCount = 0;
+    let skippedCount = candidateFiles.length - filteredFiles.length;
     const items = [];
     const CHUNK_SIZE = 10;
-    for (let i = 0; i < candidateFiles.length; i += CHUNK_SIZE) {
-      const chunk = candidateFiles.slice(i, i + CHUNK_SIZE);
+    for (let i = 0; i < filteredFiles.length; i += CHUNK_SIZE) {
+      const chunk = filteredFiles.slice(i, i + CHUNK_SIZE);
       await Promise.all(
         chunk.map(async (file) => {
           try {
@@ -2101,13 +2383,14 @@ var DirectoryMonitorService = class {
         } catch {
         }
         if (e.isDirectory()) {
+          const dirClass = FileClassifier.classifyDirectory(fullPath);
           return {
             name: e.name,
             path: fullPath,
             isDirectory: true,
             size: 0,
             modifiedAt,
-            category: "Documents"
+            category: dirClass ? dirClass.category : "Documents"
           };
         }
         const classification = FileClassifier.classify(fullPath);
@@ -2324,6 +2607,23 @@ var StorageAnalyzerService = class {
       if (this.activeScanCancelToken[sessionId]) {
         throw new Error("Scan cancelled by user");
       }
+      if (currentDepth > 32) {
+        return {
+          id: currentPath,
+          name: import_node_path7.default.basename(currentPath) || currentPath,
+          path: currentPath,
+          isDirectory: true,
+          logicalSize: 0,
+          fileCount: 0,
+          dirCount: 0,
+          percentOfParent: 0,
+          percentOfTotal: 0,
+          lastModified: (/* @__PURE__ */ new Date()).toISOString(),
+          isPartial: true,
+          hasChildren: false,
+          children: []
+        };
+      }
       let realPath = currentPath;
       try {
         realPath = import_node_fs7.default.realpathSync(currentPath);
@@ -2496,17 +2796,23 @@ var StorageAnalyzerService = class {
       Documents: "#3b82f6",
       Spreadsheets: "#10b981",
       Presentations: "#f59e0b",
-      Images: "#a855f7",
-      Videos: "#f97316",
-      Audio: "#ec4899",
-      Archives: "#14b8a6",
-      Installers: "#64748b",
-      Development: "#06b6d4",
-      Design: "#8b5cf6",
-      Fonts: "#84cc16",
-      Data: "#6366f1",
-      Ebooks: "#eab308",
-      Shortcuts: "#94a3b8",
+      Images: "#ec4899",
+      Videos: "#8b5cf6",
+      Audio: "#06b6d4",
+      Archives: "#eab308",
+      Installers: "#ef4444",
+      Codebases: "#f97316",
+      Codes: "#06b6d4",
+      Development: "#0284c7",
+      "AI Models": "#a855f7",
+      Design: "#f43f5e",
+      "Disk Images": "#e11d48",
+      Security: "#10b981",
+      Fonts: "#6366f1",
+      Data: "#14b8a6",
+      Ebooks: "#d97706",
+      Shortcuts: "#64748b",
+      Torrents: "#059669",
       Unknown: "#9ca3af"
     };
     for (const [cat, data] of Object.entries(categoryTotals)) {
@@ -2971,7 +3277,7 @@ function startApiServer() {
           const id = locationMatch[1];
           const body = await getBody();
           dbOperations.updateLocation(id, body);
-          if (body.enabled !== void 0 || body.recursive !== void 0) {
+          if (body.enabled !== void 0 || body.recursive !== void 0 || body.path !== void 0) {
             DirectoryMonitorService.reloadWatchers();
           }
           return sendJson(200, { success: true });

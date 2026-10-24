@@ -64,13 +64,13 @@ function startStaticServer(port = 3000, rootDir = path.join(__dirname, '../out')
     });
 
     server.listen(port, '127.0.0.1', () => {
-      console.log(`[Sortwise UI] Production static server running on http://127.0.0.1:${port}`);
+      console.log(`[NexusFile UI] Production static server running on http://127.0.0.1:${port}`);
       resolve(server);
     });
 
     server.on('error', (err) => {
       // If port 3000 already in use (e.g. during dev), resolve anyway
-      console.warn(`[Sortwise UI] Static server notice on port ${port}: ${err.message}`);
+      console.warn(`[NexusFile UI] Static server notice on port ${port}: ${err.message}`);
       resolve(null);
     });
   });

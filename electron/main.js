@@ -43,7 +43,7 @@ if (!gotTheLock) {
         }
       });
     } catch (err) {
-      console.log('[Sortwise] Static server notice:', err.message);
+      console.log('[NexusFile] Static server notice:', err.message);
     }
 
     app.on('activate', () => {
@@ -80,7 +80,7 @@ function getBackendServerScript() {
     fs.writeFileSync(targetFile, content);
     return targetFile;
   } catch (err) {
-    console.warn('[Sortwise] Fallback script extraction notice:', err.message);
+    console.warn('[NexusFile] Fallback script extraction notice:', err.message);
     return bundledPath;
   }
 }

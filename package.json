@@ -10,7 +10,7 @@
     "build": "next build",
     "bundle:server": "esbuild src/server/api-server.ts --bundle --platform=node --target=node20 --outfile=electron/server.bundle.js --external:node:sqlite",
     "build:msi": "npm run build && npm run bundle:server && electron-builder --win msi --x64",
-    "build:portable": "npm run build && npm run bundle:server && electron-builder --win portable --x64",
+    "build:portable": "npm run build && npm run bundle:server && electron-builder --win portable --x64 && node scripts/sync-portable.js",
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
