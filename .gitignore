@@ -15,6 +15,7 @@ build/*.msi
 *.exe
 *.msi
 *.zip
+*.mp4
 
 # Rust artifacts
 target/
