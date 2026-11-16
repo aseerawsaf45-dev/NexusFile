@@ -287,6 +287,34 @@ function seedDefaults(db: DatabaseSync) {
       insertCond.run('cond_torrent', 'rule_default_torrents', 'category', 'equals', 'Torrents', 'AND');
     }
   } catch {}
+
+  // Ensure default codebase rule exists
+  try {
+    const codebaseRule = db.prepare('SELECT id FROM organization_rules WHERE id = ?').get('rule_default_codebases');
+    if (!codebaseRule) {
+      const now = new Date().toISOString();
+      const insertRule = db.prepare(`
+        INSERT INTO organization_rules 
+        (id, name, priority, enabled, description, action_type, destination_pattern, collision_policy, dry_run_only, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      insertRule.run(
+        'rule_default_codebases',
+        'Organize Codebases & Repositories',
+        5,
+        1,
+        'Automatically route Git repositories, projects, and codebase folders into Codebases folder',
+        'move',
+        'Codebases/',
+        'keep_both',
+        0,
+        now,
+        now
+      );
+      const insertCond = db.prepare('INSERT INTO rule_conditions (id, rule_id, field, operator, value, logical_op) VALUES (?, ?, ?, ?, ?, ?)');
+      insertCond.run('cond_codebase', 'rule_default_codebases', 'category', 'equals', 'Codebases', 'AND');
+    }
+  } catch {}
 }
 
 // Data access operations

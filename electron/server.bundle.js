@@ -75,7 +75,7 @@ var DEFAULT_CATEGORIES = [
     id: "Images",
     name: "Images",
     description: "Photographs, vector artwork, and web graphics",
-    extensions: ["jpg", "jpeg", "png", "webp", "gif", "svg", "tiff", "bmp", "heic", "ico", "raw", "cr2", "nef"],
+    extensions: ["jpg", "jpeg", "png", "webp", "gif", "svg", "tiff", "bmp", "heic", "heif", "avif", "apng", "ico", "raw", "cr2", "nef", "dng"],
     color: "#ec4899",
     iconName: "Image"
   },
@@ -187,7 +187,14 @@ var DEFAULT_CATEGORIES = [
       "wasm",
       "dockerfile",
       "makefile",
-      "cmake"
+      "cmake",
+      "dart",
+      "sol",
+      "zig",
+      "nim",
+      "proto",
+      "v",
+      "sv"
     ],
     color: "#06b6d4",
     iconName: "Code2"
@@ -354,6 +361,29 @@ var DEFAULT_SETTINGS = {
   quietHoursStart: "22:00",
   quietHoursEnd: "07:00"
 };
+var KNOWN_CATEGORY_FOLDERS = [
+  "Documents",
+  "Spreadsheets",
+  "Presentations",
+  "Images",
+  "Videos",
+  "Audio",
+  "Archives",
+  "Installers",
+  "Codebases",
+  "Codes",
+  "Development",
+  "AI Models",
+  "Disk Images",
+  "Security",
+  "Design",
+  "Fonts",
+  "Data",
+  "Ebooks",
+  "Shortcuts",
+  "Torrents",
+  "Unknown"
+];
 
 // src/server/database.ts
 var dbInstance = null;
@@ -607,6 +637,33 @@ function seedDefaults(db) {
       );
       const insertCond = db.prepare("INSERT INTO rule_conditions (id, rule_id, field, operator, value, logical_op) VALUES (?, ?, ?, ?, ?, ?)");
       insertCond.run("cond_torrent", "rule_default_torrents", "category", "equals", "Torrents", "AND");
+    }
+  } catch {
+  }
+  try {
+    const codebaseRule = db.prepare("SELECT id FROM organization_rules WHERE id = ?").get("rule_default_codebases");
+    if (!codebaseRule) {
+      const now = (/* @__PURE__ */ new Date()).toISOString();
+      const insertRule = db.prepare(`
+        INSERT INTO organization_rules 
+        (id, name, priority, enabled, description, action_type, destination_pattern, collision_policy, dry_run_only, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      insertRule.run(
+        "rule_default_codebases",
+        "Organize Codebases & Repositories",
+        5,
+        1,
+        "Automatically route Git repositories, projects, and codebase folders into Codebases folder",
+        "move",
+        "Codebases/",
+        "keep_both",
+        0,
+        now,
+        now
+      );
+      const insertCond = db.prepare("INSERT INTO rule_conditions (id, rule_id, field, operator, value, logical_op) VALUES (?, ?, ?, ?, ?, ?)");
+      insertCond.run("cond_codebase", "rule_default_codebases", "category", "equals", "Codebases", "AND");
     }
   } catch {
   }
@@ -1266,62 +1323,329 @@ var MAGIC_SIGNATURES = [
 ];
 var CODEBASE_MARKERS = [
   ".git",
+  ".github",
+  ".gitlab-ci.yml",
+  ".svn",
+  ".hg",
+  ".gitignore",
+  ".gitattributes",
+  ".gitmodules",
   "package.json",
+  "package-lock.json",
+  "pnpm-lock.yaml",
+  "pnpm-workspace.yaml",
+  "yarn.lock",
+  "bun.lockb",
+  "bunfig.toml",
   "Cargo.toml",
+  "Cargo.lock",
   "pyproject.toml",
   "requirements.txt",
   "setup.py",
+  "setup.cfg",
   "Pipfile",
+  "Pipfile.lock",
+  "poetry.lock",
+  "tox.ini",
+  "flake8",
+  ".flake8",
+  "manage.py",
+  "environment.yml",
   "go.mod",
+  "go.sum",
+  "go.work",
   "pom.xml",
   "build.gradle",
+  "build.gradle.kts",
   "settings.gradle",
+  "settings.gradle.kts",
+  "gradlew",
+  "gradlew.bat",
+  "build.sbt",
   "CMakeLists.txt",
   "Makefile",
+  "makefile",
+  "meson.build",
+  "configure.ac",
+  "platformio.ini",
   "composer.json",
+  "composer.lock",
   "Gemfile",
+  "Gemfile.lock",
+  "Rakefile",
   "mix.exs",
   "tsconfig.json",
+  "jsconfig.json",
+  "deno.json",
+  "deno.jsonc",
+  "vite.config.ts",
+  "vite.config.js",
+  "vite.config.mjs",
+  "next.config.js",
+  "next.config.mjs",
+  "next.config.ts",
+  "nuxt.config.ts",
+  "nuxt.config.js",
+  "svelte.config.js",
+  "astro.config.mjs",
+  "angular.json",
+  "tailwind.config.js",
+  "tailwind.config.ts",
+  "postcss.config.js",
+  "postcss.config.mjs",
+  "webpack.config.js",
+  "rollup.config.js",
+  "pubspec.yaml",
+  "pubspec.lock",
+  "Package.swift",
+  "Podfile",
+  "Podfile.lock",
   ".sln",
-  ".csproj"
+  ".csproj",
+  ".fsproj",
+  ".vbproj",
+  "Dockerfile",
+  "docker-compose.yml",
+  "docker-compose.yaml",
+  "Containerfile",
+  "Procfile",
+  "Jenkinsfile",
+  ".vscode",
+  ".idea",
+  "node_modules",
+  "venv",
+  ".venv",
+  "__pycache__"
 ];
 var FileClassifier = class {
   /**
-   * Check if a directory is a software codebase or project repository.
+   * Check and classify any directory (Codebases, Images, Documents, Videos, etc.).
    */
   static classifyDirectory(dirPath) {
     try {
-      if (!import_node_fs2.default.existsSync(dirPath)) return null;
-      const stat = import_node_fs2.default.statSync(dirPath);
-      if (!stat.isDirectory()) return null;
+      const exists = import_node_fs2.default.existsSync(dirPath);
+      if (exists) {
+        const stat = import_node_fs2.default.statSync(dirPath);
+        if (!stat.isDirectory()) return null;
+      }
       const baseName = import_node_path2.default.basename(dirPath);
-      for (const marker of CODEBASE_MARKERS) {
-        const markerPath = import_node_path2.default.join(dirPath, marker);
-        if (import_node_fs2.default.existsSync(markerPath)) {
+      const lowerBaseName = baseName.toLowerCase();
+      if (exists) {
+        for (const marker of CODEBASE_MARKERS) {
+          const markerPath = import_node_path2.default.join(dirPath, marker);
+          if (import_node_fs2.default.existsSync(markerPath)) {
+            return {
+              category: "Codebases",
+              confidence: "high",
+              detectedExtension: "project",
+              matchedBy: "codebase_marker",
+              projectGuess: baseName
+            };
+          }
+        }
+        const subdirs = ["src", "lib", "app", "components", "pages", "routes", "scripts", "packages", "bin", "include"];
+        for (const sub of subdirs) {
+          if (import_node_fs2.default.existsSync(import_node_path2.default.join(dirPath, sub))) {
+            return {
+              category: "Codebases",
+              confidence: "high",
+              detectedExtension: "project",
+              matchedBy: "codebase_marker",
+              projectGuess: baseName
+            };
+          }
+        }
+      }
+      const isRepoName = /(?:-|_)(?:main|master|dev|develop|release|staging|repo|project|v\d+)$/i.test(lowerBaseName) || /^(?:code|dev|repo|project|app)-/i.test(lowerBaseName);
+      if (exists) {
+        let entries = [];
+        try {
+          entries = import_node_fs2.default.readdirSync(dirPath);
+        } catch {
+        }
+        if (entries.length > 0) {
+          const codeExtensions = /* @__PURE__ */ new Set([
+            "py",
+            "pyw",
+            "js",
+            "mjs",
+            "cjs",
+            "ts",
+            "mts",
+            "cts",
+            "jsx",
+            "tsx",
+            "rs",
+            "go",
+            "c",
+            "cpp",
+            "cc",
+            "cxx",
+            "h",
+            "hpp",
+            "cs",
+            "java",
+            "kt",
+            "kts",
+            "swift",
+            "rb",
+            "php",
+            "lua",
+            "pl",
+            "pm",
+            "sh",
+            "bash",
+            "ps1",
+            "bat",
+            "cmd",
+            "html",
+            "htm",
+            "css",
+            "scss",
+            "sass",
+            "vue",
+            "svelte",
+            "json",
+            "yaml",
+            "yml",
+            "toml",
+            "sql",
+            "wasm",
+            "dockerfile",
+            "makefile",
+            "cmake",
+            "dart",
+            "zig",
+            "proto"
+          ]);
+          const exactCodeFiles = /* @__PURE__ */ new Set([
+            "dockerfile",
+            "makefile",
+            "gemfile",
+            "jenkinsfile",
+            "procfile",
+            "cmakelists.txt",
+            ".gitignore",
+            ".gitattributes",
+            ".env",
+            "license",
+            "readme.md",
+            "readme.txt",
+            "readme",
+            "index.html",
+            "main.py",
+            "app.py",
+            "server.js",
+            "index.js",
+            "index.ts",
+            "server.ts"
+          ]);
+          let codeFileCount = 0;
+          const categoryCounts = {};
+          for (const entry of entries.slice(0, 60)) {
+            const lowerEntry = entry.toLowerCase();
+            const dot = lowerEntry.lastIndexOf(".");
+            const ext = dot !== -1 ? lowerEntry.substring(dot + 1) : "";
+            if (codeExtensions.has(ext) || exactCodeFiles.has(lowerEntry)) {
+              codeFileCount++;
+            }
+            if (ext) {
+              for (const cat of DEFAULT_CATEGORIES) {
+                if (cat.extensions.includes(ext)) {
+                  categoryCounts[cat.id] = (categoryCounts[cat.id] || 0) + 1;
+                  break;
+                }
+              }
+            }
+          }
+          if (codeFileCount >= 2 || codeFileCount >= 1 && (isRepoName || entries.length <= 5)) {
+            return {
+              category: "Codebases",
+              confidence: "high",
+              detectedExtension: "project",
+              matchedBy: "codebase_marker",
+              projectGuess: baseName
+            };
+          }
+          if (isRepoName && codeFileCount >= 1) {
+            return {
+              category: "Codebases",
+              confidence: "medium",
+              detectedExtension: "project",
+              matchedBy: "codebase_marker",
+              projectGuess: baseName
+            };
+          }
+          let dominantCat = null;
+          let maxCount = 0;
+          for (const [cat, count] of Object.entries(categoryCounts)) {
+            if (count > maxCount) {
+              maxCount = count;
+              dominantCat = cat;
+            }
+          }
+          if (dominantCat && maxCount >= 2 && maxCount / entries.length >= 0.3) {
+            return {
+              category: dominantCat,
+              confidence: "medium",
+              detectedExtension: "folder",
+              matchedBy: "extension",
+              projectGuess: baseName
+            };
+          }
+        }
+      }
+      const nameKeywords = [
+        { category: "Images", keywords: ["photo", "image", "picture", "wallpaper", "screenshot", "icon", "graphic", "camera", "dcim", "album"] },
+        { category: "Documents", keywords: ["doc", "document", "invoice", "receipt", "pdf", "paper", "report", "contract", "statement", "tax", "resume", "cv"] },
+        { category: "Videos", keywords: ["video", "movie", "film", "series", "recording", "clip", "show", "footage"] },
+        { category: "Audio", keywords: ["audio", "music", "song", "sound", "track", "podcast", "voice"] },
+        { category: "Spreadsheets", keywords: ["sheet", "spreadsheet", "excel", "csv", "finance", "accounting", "budget"] },
+        { category: "Presentations", keywords: ["presentation", "slide", "pitch", "deck", "powerpoint"] },
+        { category: "Design", keywords: ["design", "3d", "render", "cad", "model", "mesh", "texture", "figma", "psd"] },
+        { category: "Archives", keywords: ["archive", "backup", "unzipped", "extracted"] },
+        { category: "Installers", keywords: ["installer", "setup", "portable", "program", "software"] },
+        { category: "Data", keywords: ["dataset", "database", "sqlite"] },
+        { category: "Ebooks", keywords: ["ebook", "novel", "manga", "comic"] },
+        { category: "Fonts", keywords: ["font", "typeface", "typography"] },
+        { category: "Codebases", keywords: ["codebase", "repository", "github", "gitlab", "git", "source"] }
+      ];
+      for (const { category, keywords } of nameKeywords) {
+        if (keywords.some((kw) => lowerBaseName.includes(kw))) {
           return {
-            category: "Codebases",
-            confidence: "high",
-            detectedExtension: "project",
-            matchedBy: "codebase_marker",
+            category,
+            confidence: "medium",
+            detectedExtension: category === "Codebases" ? "project" : "folder",
+            matchedBy: "keyword",
             projectGuess: baseName
           };
         }
       }
-      const hasSrc = import_node_fs2.default.existsSync(import_node_path2.default.join(dirPath, "src"));
-      const hasLib = import_node_fs2.default.existsSync(import_node_path2.default.join(dirPath, "lib"));
-      const hasTests = import_node_fs2.default.existsSync(import_node_path2.default.join(dirPath, "tests")) || import_node_fs2.default.existsSync(import_node_path2.default.join(dirPath, "test"));
-      if (hasSrc && (hasLib || hasTests)) {
+      if (isRepoName) {
         return {
           category: "Codebases",
-          confidence: "medium",
+          confidence: "low",
           detectedExtension: "project",
           matchedBy: "codebase_marker",
           projectGuess: baseName
         };
       }
+      return {
+        category: "Unknown",
+        confidence: "low",
+        detectedExtension: "folder",
+        matchedBy: "default",
+        projectGuess: baseName
+      };
     } catch {
     }
-    return null;
+    return {
+      category: "Unknown",
+      confidence: "low",
+      detectedExtension: "folder",
+      matchedBy: "default",
+      projectGuess: import_node_path2.default.basename(dirPath)
+    };
   }
   /**
    * Classify a file or directory using extension, magic bytes, codebase markers, and name patterns.
@@ -1336,7 +1660,7 @@ var FileClassifier = class {
           const dirResult = this.classifyDirectory(filePath);
           if (dirResult) return dirResult;
           return {
-            category: "Documents",
+            category: "Unknown",
             confidence: "low",
             detectedExtension: "folder",
             matchedBy: "default",
@@ -1516,7 +1840,7 @@ var RuleEngine = class {
   /**
    * Evaluate a file against an ordered set of rules.
    */
-  static evaluate(filePath, rules, defaultTemplate = "{Category}/", baseDestinationFolder) {
+  static evaluate(filePath, rules, defaultTemplate = "{Category}/", baseDestinationFolder, unknownFileBehavior = "organize_to_unknown") {
     const filename = import_node_path3.default.basename(filePath);
     const classification = FileClassifier.classify(filePath);
     const category = classification.category;
@@ -1553,11 +1877,21 @@ var RuleEngine = class {
       baseDestinationFolder,
       classification.projectGuess
     );
+    let defaultAction = "move";
+    if (category === "Unknown") {
+      if (unknownFileBehavior === "review_queue") {
+        defaultAction = "review";
+      } else if (unknownFileBehavior === "ignore") {
+        defaultAction = "ignore";
+      } else {
+        defaultAction = "move";
+      }
+    }
     return {
       matchedRule: null,
       proposedDestination: fallbackDest,
       category,
-      action: category === "Unknown" ? "review" : "move",
+      action: defaultAction,
       matchReason: "No specific rule matched. Applied default category organization template."
     };
   }
@@ -1862,6 +2196,18 @@ var SafeFileOperations = class {
       };
     }
     if (this.isRecursiveLoop(normSource, normDest)) {
+      if (normSource.toLowerCase() === normDest.toLowerCase()) {
+        return {
+          success: true,
+          operationType: "move",
+          originalPath: normSource,
+          finalPath: normDest,
+          fileSize: 0,
+          contentHash: null,
+          status: "skipped",
+          errorMessage: "Already at destination."
+        };
+      }
       return {
         success: false,
         operationType: "move",
@@ -1874,35 +2220,38 @@ var SafeFileOperations = class {
       };
     }
     const stat = import_node_fs4.default.statSync(normSource);
-    const fileSize = stat.size;
-    const sourceHash = this.calculateHash(normSource);
+    const isDir = stat.isDirectory();
+    const fileSize = isDir ? 0 : stat.size;
+    const sourceHash = isDir ? null : this.calculateHash(normSource);
     if (import_node_fs4.default.existsSync(normDest)) {
-      const destHash = this.calculateHash(normDest);
-      if (sourceHash && destHash && sourceHash === destHash) {
-        if (collisionPolicy === "skip") {
-          dbOperations.addHistory({
-            timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-            originalPath: normSource,
-            newPath: normDest,
-            fileCategory: category,
-            fileSize,
-            appliedRuleName: ruleName,
-            operationType: "move",
-            result: "skipped",
-            errorDetails: "Target already contains an identical file (matched SHA-256 hash).",
-            contentHash: sourceHash,
-            isUndone: false,
-            canUndo: false
-          });
-          return {
-            success: true,
-            operationType: "move",
-            originalPath: normSource,
-            finalPath: normDest,
-            fileSize,
-            contentHash: sourceHash,
-            status: "skipped"
-          };
+      if (!isDir) {
+        const destHash = this.calculateHash(normDest);
+        if (sourceHash && destHash && sourceHash === destHash) {
+          if (collisionPolicy === "skip") {
+            dbOperations.addHistory({
+              timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+              originalPath: normSource,
+              newPath: normDest,
+              fileCategory: category,
+              fileSize,
+              appliedRuleName: ruleName,
+              operationType: "move",
+              result: "skipped",
+              errorDetails: "Target already contains an identical file (matched SHA-256 hash).",
+              contentHash: sourceHash,
+              isUndone: false,
+              canUndo: false
+            });
+            return {
+              success: true,
+              operationType: "move",
+              originalPath: normSource,
+              finalPath: normDest,
+              fileSize,
+              contentHash: sourceHash,
+              status: "skipped"
+            };
+          }
         }
       }
       if (collisionPolicy === "skip") {
@@ -1915,7 +2264,7 @@ var SafeFileOperations = class {
           appliedRuleName: ruleName,
           operationType: "move",
           result: "skipped",
-          errorDetails: 'Destination file already exists and collision policy is "skip".',
+          errorDetails: `Destination ${isDir ? "folder" : "file"} already exists and collision policy is "skip".`,
           contentHash: sourceHash,
           isUndone: false,
           canUndo: false
@@ -1942,31 +2291,50 @@ var SafeFileOperations = class {
       const destRoot = import_node_path4.default.parse(normDest).root.toLowerCase();
       if (sourceRoot === destRoot) {
         if (import_node_fs4.default.existsSync(normDest)) {
-          try {
-            import_node_fs4.default.unlinkSync(normDest);
-          } catch {
-            import_node_fs4.default.copyFileSync(normSource, normDest);
-            import_node_fs4.default.unlinkSync(normSource);
-            return {
-              success: true,
-              operationType: "move",
-              originalPath: normSource,
-              finalPath: normDest,
-              fileSize,
-              contentHash: sourceHash,
-              status: "success"
-            };
+          if (isDir) {
+            import_node_fs4.default.rmSync(normDest, { recursive: true, force: true });
+          } else {
+            try {
+              import_node_fs4.default.unlinkSync(normDest);
+            } catch {
+              import_node_fs4.default.copyFileSync(normSource, normDest);
+              import_node_fs4.default.unlinkSync(normSource);
+              return {
+                success: true,
+                operationType: "move",
+                originalPath: normSource,
+                finalPath: normDest,
+                fileSize,
+                contentHash: sourceHash,
+                status: "success"
+              };
+            }
           }
         }
-        import_node_fs4.default.renameSync(normSource, normDest);
-      } else {
-        import_node_fs4.default.copyFileSync(normSource, normDest);
-        const copyHash = this.calculateHash(normDest);
-        if (sourceHash && copyHash !== sourceHash) {
-          import_node_fs4.default.unlinkSync(normDest);
-          throw new Error("Data integrity check failed during cross-volume copy.");
+        try {
+          import_node_fs4.default.renameSync(normSource, normDest);
+        } catch {
+          if (isDir) {
+            import_node_fs4.default.cpSync(normSource, normDest, { recursive: true });
+            import_node_fs4.default.rmSync(normSource, { recursive: true, force: true });
+          } else {
+            import_node_fs4.default.copyFileSync(normSource, normDest);
+            import_node_fs4.default.unlinkSync(normSource);
+          }
         }
-        import_node_fs4.default.unlinkSync(normSource);
+      } else {
+        if (isDir) {
+          import_node_fs4.default.cpSync(normSource, normDest, { recursive: true });
+          import_node_fs4.default.rmSync(normSource, { recursive: true, force: true });
+        } else {
+          import_node_fs4.default.copyFileSync(normSource, normDest);
+          const copyHash = this.calculateHash(normDest);
+          if (sourceHash && copyHash !== sourceHash) {
+            import_node_fs4.default.unlinkSync(normDest);
+            throw new Error("Data integrity check failed during cross-volume copy.");
+          }
+          import_node_fs4.default.unlinkSync(normSource);
+        }
       }
       dbOperations.addHistory({
         timestamp: (/* @__PURE__ */ new Date()).toISOString(),
@@ -2114,17 +2482,24 @@ var DirectoryMonitorService = class {
   static async processSingleFile(filePath, locationId, customDestinationDirectory, immediateMode = false) {
     if (!import_node_fs5.default.existsSync(filePath)) return null;
     const stat = import_node_fs5.default.statSync(filePath);
-    if (stat.isDirectory()) {
-      return null;
+    const isDir = stat.isDirectory();
+    const baseName = import_node_path5.default.basename(filePath);
+    const lowerKnown = new Set(KNOWN_CATEGORY_FOLDERS.map((k) => k.toLowerCase()));
+    if (isDir) {
+      if (lowerKnown.has(baseName.toLowerCase())) {
+        return null;
+      }
     }
     const settings = dbOperations.getSettings();
-    const isStable = await SafeFileOperations.checkFileStability(
-      filePath,
-      immediateMode ? 0 : settings.fileStabilityDelayMs || 500,
-      immediateMode
-    );
-    if (!isStable) {
-      return null;
+    if (!isDir) {
+      const isStable = await SafeFileOperations.checkFileStability(
+        filePath,
+        immediateMode ? 0 : settings.fileStabilityDelayMs || 500,
+        immediateMode
+      );
+      if (!isStable) {
+        return null;
+      }
     }
     if (settings.dryRunMode) {
       return null;
@@ -2135,10 +2510,10 @@ var DirectoryMonitorService = class {
       const lowerFile = filePath.toLowerCase();
       matchedLocation = locations.find((l) => lowerFile.startsWith(l.path.toLowerCase()));
     }
-    const baseDestFolder = customDestinationDirectory || matchedLocation?.targetDirectory || void 0;
+    const baseDestFolder = customDestinationDirectory || matchedLocation?.targetDirectory || matchedLocation?.path || void 0;
     const template = matchedLocation?.destinationTemplate || settings.defaultDestinationTemplate;
     const rules = dbOperations.getRules();
-    const evaluation = RuleEngine.evaluate(filePath, rules, template, baseDestFolder);
+    const evaluation = RuleEngine.evaluate(filePath, rules, template, baseDestFolder, settings.unknownFileBehavior);
     if (evaluation.action === "ignore") {
       return;
     }
@@ -2179,7 +2554,9 @@ var DirectoryMonitorService = class {
     }
     let processedCount = 0;
     try {
-      const scanDir = async (dir) => {
+      const lowerKnown = new Set(KNOWN_CATEGORY_FOLDERS.map((k) => k.toLowerCase()));
+      const rootPath = import_node_path5.default.resolve(loc.path);
+      const scanDir = async (dir, isRoot) => {
         let entries = [];
         try {
           entries = import_node_fs5.default.readdirSync(dir, { withFileTypes: true });
@@ -2188,21 +2565,37 @@ var DirectoryMonitorService = class {
         }
         for (const entry of entries) {
           const fullPath = import_node_path5.default.join(dir, entry.name);
-          if (entry.isDirectory() && loc.recursive) {
-            try {
-              const stat = import_node_fs5.default.lstatSync(fullPath);
-              if (!stat.isSymbolicLink()) {
-                await scanDir(fullPath);
+          const isCategoryFolder = lowerKnown.has(entry.name.toLowerCase());
+          if (entry.isDirectory()) {
+            if (isRoot) {
+              if (isCategoryFolder) {
+                if (loc.recursive) {
+                  await scanDir(fullPath, false);
+                }
+              } else {
+                const res = await this.processSingleFile(fullPath, loc.id, void 0, true);
+                if (res && res.success && res.status !== "skipped") {
+                  processedCount++;
+                }
               }
-            } catch {
+            } else if (loc.recursive) {
+              try {
+                const stat = import_node_fs5.default.lstatSync(fullPath);
+                if (!stat.isSymbolicLink()) {
+                  await scanDir(fullPath, false);
+                }
+              } catch {
+              }
             }
           } else if (entry.isFile()) {
-            await this.processSingleFile(fullPath, loc.id);
-            processedCount++;
+            const res = await this.processSingleFile(fullPath, loc.id, void 0, true);
+            if (res && res.success && res.status !== "skipped") {
+              processedCount++;
+            }
           }
         }
       };
-      await scanDir(loc.path);
+      await scanDir(rootPath, true);
       dbOperations.updateLocation(loc.id, {
         lastScannedAt: (/* @__PURE__ */ new Date()).toISOString(),
         itemCount: processedCount,
@@ -2238,39 +2631,45 @@ var DirectoryMonitorService = class {
       };
     }
     const entries = import_node_fs5.default.readdirSync(resolvedPath);
-    const candidateFiles = [];
+    const candidateItems = [];
+    const lowerKnown = new Set(KNOWN_CATEGORY_FOLDERS.map((k) => k.toLowerCase()));
     for (const entry of entries) {
+      if (lowerKnown.has(entry.toLowerCase())) {
+        continue;
+      }
       const full = import_node_path5.default.join(resolvedPath, entry);
       try {
         const s = import_node_fs5.default.statSync(full);
         if (s.isFile()) {
-          candidateFiles.push(full);
+          const classification = FileClassifier.classify(full);
+          candidateItems.push({ path: full, isDirectory: false, category: classification.category });
+        } else if (s.isDirectory()) {
+          const dirClass = FileClassifier.classifyDirectory(full);
+          candidateItems.push({ path: full, isDirectory: true, category: dirClass?.category || "Unknown" });
         }
       } catch {
       }
     }
     const hasCategoryFilter = allowedCategories && allowedCategories.length > 0 && !allowedCategories.includes("all");
-    const filteredFiles = hasCategoryFilter ? candidateFiles.filter((file) => {
-      const classification = FileClassifier.classify(file);
-      return allowedCategories.includes(classification.category);
-    }) : candidateFiles;
+    const filteredItems = hasCategoryFilter ? candidateItems.filter((item) => allowedCategories.includes(item.category)) : candidateItems;
     let organizedCount = 0;
-    let skippedCount = candidateFiles.length - filteredFiles.length;
+    let skippedCount = candidateItems.length - filteredItems.length;
     const items = [];
     const CHUNK_SIZE = 10;
-    for (let i = 0; i < filteredFiles.length; i += CHUNK_SIZE) {
-      const chunk = filteredFiles.slice(i, i + CHUNK_SIZE);
+    for (let i = 0; i < filteredItems.length; i += CHUNK_SIZE) {
+      const chunk = filteredItems.slice(i, i + CHUNK_SIZE);
       await Promise.all(
-        chunk.map(async (file) => {
+        chunk.map(async (item) => {
           try {
-            const res = await this.processSingleFile(file, void 0, customDestination, true);
+            const res = await this.processSingleFile(item.path, void 0, customDestination, true);
             if (res && res.success) {
               organizedCount++;
               items.push({
-                original: file,
+                original: item.path,
                 destination: res.finalPath,
-                category: res.operationType || "organized",
-                status: "success"
+                category: res.operationType || item.category,
+                status: "success",
+                isDirectory: item.isDirectory
               });
             } else {
               skippedCount++;
@@ -2285,7 +2684,7 @@ var DirectoryMonitorService = class {
     return {
       success: true,
       folderPath: resolvedPath,
-      totalFound: candidateFiles.length,
+      totalFound: candidateItems.length,
       organizedCount,
       skippedCount,
       durationMs,
@@ -2293,37 +2692,45 @@ var DirectoryMonitorService = class {
     };
   }
   /**
-   * Run a dry scan over a folder to show proposed changes without touching files.
+   * Run a dry scan over a folder to show proposed changes and category breakdown without touching files.
    */
-  static runDryScan(directoryPath) {
+  static runDryScan(directoryPath, customDestination) {
     if (!import_node_fs5.default.existsSync(directoryPath)) {
-      return { totalFiles: 0, totalBytes: 0, processableFiles: 0, conflictingFiles: 0, skippedFiles: 0, items: [] };
+      return { totalFiles: 0, totalBytes: 0, processableFiles: 0, conflictingFiles: 0, skippedFiles: 0, items: [], categoryBreakdown: {} };
     }
     const rules = dbOperations.getRules();
     const settings = dbOperations.getSettings();
     const locations = dbOperations.getLocations();
     const matchedLoc = locations.find((l) => directoryPath.toLowerCase().startsWith(l.path.toLowerCase()));
     const template = matchedLoc?.destinationTemplate || settings.defaultDestinationTemplate;
-    const baseDest = matchedLoc?.targetDirectory || void 0;
+    const baseDest = customDestination || matchedLoc?.targetDirectory || void 0;
     const files = import_node_fs5.default.readdirSync(directoryPath);
     const items = [];
+    const lowerKnown = new Set(KNOWN_CATEGORY_FOLDERS.map((k) => k.toLowerCase()));
     let totalBytes = 0;
     let processableFiles = 0;
     let conflictingFiles = 0;
     let skippedFiles = 0;
     for (const file of files) {
+      if (lowerKnown.has(file.toLowerCase())) continue;
       const fullPath = import_node_path5.default.join(directoryPath, file);
       if (!import_node_fs5.default.existsSync(fullPath)) continue;
-      const stat = import_node_fs5.default.statSync(fullPath);
-      if (!stat.isFile()) continue;
-      totalBytes += stat.size;
-      const evaluation = RuleEngine.evaluate(fullPath, rules, template, baseDest);
+      let stat;
+      try {
+        stat = import_node_fs5.default.statSync(fullPath);
+      } catch {
+        continue;
+      }
+      const isDir = stat.isDirectory();
+      const itemSize = isDir ? 0 : stat.size;
+      totalBytes += itemSize;
+      const evaluation = RuleEngine.evaluate(fullPath, rules, template, baseDest, settings.unknownFileBehavior);
       const willConflict = Boolean(evaluation.proposedDestination && import_node_fs5.default.existsSync(evaluation.proposedDestination));
       let status = "can_move";
       if (evaluation.action === "ignore") {
         status = "will_skip";
         skippedFiles++;
-      } else if (evaluation.action === "review" || evaluation.category === "Unknown") {
+      } else if (evaluation.action === "review") {
         status = "review_required";
         conflictingFiles++;
       } else if (willConflict) {
@@ -2337,12 +2744,33 @@ var DirectoryMonitorService = class {
         filename: file,
         proposedDestination: evaluation.proposedDestination || "No destination",
         fileCategory: evaluation.category,
-        matchingRuleName: evaluation.matchedRule ? evaluation.matchedRule.name : "Default Category Template",
-        fileSize: stat.size,
+        matchingRuleName: evaluation.matchedRule ? evaluation.matchedRule.name : isDir ? evaluation.category === "Codebases" ? "Codebase Repository" : `${evaluation.category} Folder` : "Default Category Template",
+        fileSize: itemSize,
         willConflict,
-        conflictReason: willConflict ? "Target destination already contains a file with this name." : void 0,
-        status
+        conflictReason: willConflict ? `Target destination already contains ${isDir ? "a folder" : "a file"} with this name.` : void 0,
+        status,
+        isDirectory: isDir
       });
+    }
+    const categoryBreakdown = {};
+    for (const item of items) {
+      const cat = item.fileCategory;
+      if (!categoryBreakdown[cat]) {
+        const catInfo = DEFAULT_CATEGORIES.find((c) => c.id === cat);
+        categoryBreakdown[cat] = {
+          category: cat,
+          count: 0,
+          totalBytes: 0,
+          color: catInfo?.color || "#94a3b8",
+          iconName: catInfo?.iconName || "File",
+          sampleNames: []
+        };
+      }
+      categoryBreakdown[cat].count++;
+      categoryBreakdown[cat].totalBytes += item.fileSize;
+      if (categoryBreakdown[cat].sampleNames.length < 5) {
+        categoryBreakdown[cat].sampleNames.push(item.filename);
+      }
     }
     return {
       totalFiles: items.length,
@@ -2350,7 +2778,8 @@ var DirectoryMonitorService = class {
       processableFiles,
       conflictingFiles,
       skippedFiles,
-      items
+      items,
+      categoryBreakdown
     };
   }
   /**
@@ -2370,6 +2799,7 @@ var DirectoryMonitorService = class {
     const matchedLoc = locations.find((l) => target.toLowerCase().startsWith(l.path.toLowerCase()));
     const template = matchedLoc?.destinationTemplate || settings.defaultDestinationTemplate;
     const baseDest = matchedLoc?.targetDirectory || void 0;
+    const lowerKnown = new Set(KNOWN_CATEGORY_FOLDERS.map((k) => k.toLowerCase()));
     try {
       const entries = import_node_fs5.default.readdirSync(target, { withFileTypes: true });
       return entries.map((e) => {
@@ -2383,18 +2813,22 @@ var DirectoryMonitorService = class {
         } catch {
         }
         if (e.isDirectory()) {
-          const dirClass = FileClassifier.classifyDirectory(fullPath);
+          const isCategoryFolder = lowerKnown.has(e.name.toLowerCase());
+          const dirClass = isCategoryFolder ? null : FileClassifier.classifyDirectory(fullPath);
+          const evaluation2 = !isCategoryFolder ? RuleEngine.evaluate(fullPath, rules, template, baseDest, settings.unknownFileBehavior) : null;
           return {
             name: e.name,
             path: fullPath,
             isDirectory: true,
             size: 0,
             modifiedAt,
-            category: dirClass ? dirClass.category : "Documents"
+            category: isCategoryFolder ? e.name : dirClass ? dirClass.category : "Unknown",
+            proposedDestination: evaluation2?.proposedDestination || void 0,
+            matchingRule: isCategoryFolder ? "Main Category Folder" : evaluation2?.matchedRule ? evaluation2.matchedRule.name : void 0
           };
         }
         const classification = FileClassifier.classify(fullPath);
-        const evaluation = RuleEngine.evaluate(fullPath, rules, template, baseDest);
+        const evaluation = RuleEngine.evaluate(fullPath, rules, template, baseDest, settings.unknownFileBehavior);
         return {
           name: e.name,
           path: fullPath,
@@ -2458,13 +2892,19 @@ var UndoManager = class {
       import_node_fs6.default.mkdirSync(origDir, { recursive: true });
     }
     try {
+      const isDir = import_node_fs6.default.statSync(currentPath).isDirectory();
       const sourceRoot = import_node_path6.default.parse(currentPath).root.toLowerCase();
       const destRoot = import_node_path6.default.parse(originalTarget).root.toLowerCase();
       if (sourceRoot === destRoot) {
         import_node_fs6.default.renameSync(currentPath, originalTarget);
       } else {
-        import_node_fs6.default.copyFileSync(currentPath, originalTarget);
-        import_node_fs6.default.unlinkSync(currentPath);
+        if (isDir) {
+          import_node_fs6.default.cpSync(currentPath, originalTarget, { recursive: true });
+          import_node_fs6.default.rmSync(currentPath, { recursive: true, force: true });
+        } else {
+          import_node_fs6.default.copyFileSync(currentPath, originalTarget);
+          import_node_fs6.default.unlinkSync(currentPath);
+        }
       }
       dbOperations.markHistoryUndone(historyId);
       dbOperations.addHistory({
@@ -3377,7 +3817,8 @@ function startApiServer() {
         }
         if (pathname === "/api/dry-scan" && method === "POST") {
           const body = await getBody();
-          const result = DirectoryMonitorService.runDryScan(body.path);
+          const targetDir = body.targetDirectory || body.destination;
+          const result = DirectoryMonitorService.runDryScan(body.path || body.folderPath, targetDir);
           return sendJson(200, result);
         }
         if (pathname === "/api/explorer" && method === "GET") {

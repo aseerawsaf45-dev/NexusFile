@@ -109,3 +109,46 @@ describe('RuleEngine with Custom Destination and Torrents', () => {
     expect(evaluation.proposedDestination).toBe('E:\\TorrentStore\\Torrents\\sample.torrent');
   });
 });
+
+describe('Directory Scanning and Codebase Categorization', () => {
+  it('identifies directories containing package.json or pyproject.toml as Codebases', () => {
+    // Current working directory has package.json and Cargo.toml
+    const result = FileClassifier.classifyDirectory(process.cwd());
+    expect(result).not.toBeNull();
+    expect(result?.category).toBe('Codebases');
+    expect(result?.confidence).toBe('high');
+  });
+
+  it('correctly classifies modern images (avif, heic, webp)', () => {
+    expect(FileClassifier.classify('photo.avif').category).toBe('Images');
+    expect(FileClassifier.classify('graphic.webp').category).toBe('Images');
+    expect(FileClassifier.classify('wallpaper.png').category).toBe('Images');
+  });
+
+  it('correctly classifies languages in Codes category', () => {
+    expect(FileClassifier.classify('contract.sol').category).toBe('Codes');
+    expect(FileClassifier.classify('app.dart').category).toBe('Codes');
+    expect(FileClassifier.classify('server.zig').category).toBe('Codes');
+  });
+
+  it('classifies directories by keyword and content', () => {
+    // Testing directory classification
+    expect(FileClassifier.classifyDirectory('C:\\FakePath\\Vacation Photos')?.category).toBe('Images');
+    expect(FileClassifier.classifyDirectory('C:\\FakePath\\Company Documents')?.category).toBe('Documents');
+    expect(FileClassifier.classifyDirectory('C:\\FakePath\\NexusFile-main')?.category).toBe('Codebases');
+    expect(FileClassifier.classifyDirectory('C:\\FakePath\\Misc_Random_Folder')?.category).toBe('Unknown');
+  });
+
+  it('evaluates Unknown files with organize_to_unknown action move', () => {
+    const evalResult = RuleEngine.evaluate(
+      'C:\\FakePath\\unknown_format.xyz',
+      [],
+      '{Category}/',
+      undefined,
+      'organize_to_unknown'
+    );
+    expect(evalResult.category).toBe('Unknown');
+    expect(evalResult.action).toBe('move');
+    expect(evalResult.proposedDestination).toContain('Unknown');
+  });
+});

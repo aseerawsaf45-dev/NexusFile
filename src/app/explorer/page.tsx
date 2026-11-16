@@ -28,7 +28,7 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { apiClient } from '@/lib/api-client';
 import { MonitoredLocation, ExplorerFileItem } from '@/lib/types';
-import { DEFAULT_CATEGORIES } from '@/lib/constants';
+import { DEFAULT_CATEGORIES, KNOWN_CATEGORY_FOLDERS } from '@/lib/constants';
 import { formatBytes, formatDate } from '@/lib/utils';
 
 export default function FileExplorerPage() {
@@ -162,11 +162,13 @@ export default function FileExplorerPage() {
   };
 
   const handleSelectAll = () => {
-    const filePaths = items.filter((i) => !i.isDirectory).map((i) => i.path);
-    if (selectedFiles.length === filePaths.length) {
+    const organizablePaths = items
+      .filter((i) => !i.isDirectory || !KNOWN_CATEGORY_FOLDERS.some((k) => k.toLowerCase() === i.name.toLowerCase()))
+      .map((i) => i.path);
+    if (selectedFiles.length === organizablePaths.length) {
       setSelectedFiles([]);
     } else {
-      setSelectedFiles(filePaths);
+      setSelectedFiles(organizablePaths);
     }
   };
 
@@ -401,7 +403,10 @@ export default function FileExplorerPage() {
                     type="checkbox"
                     checked={
                       selectedFiles.length > 0 &&
-                      selectedFiles.length === items.filter((i) => !i.isDirectory).length
+                      selectedFiles.length ===
+                        items.filter(
+                          (i) => !i.isDirectory || !KNOWN_CATEGORY_FOLDERS.some((k) => k.toLowerCase() === i.name.toLowerCase())
+                        ).length
                     }
                     onChange={handleSelectAll}
                     className="w-3.5 h-3.5 rounded text-primary focus:ring-primary"
@@ -431,6 +436,7 @@ export default function FileExplorerPage() {
                   const isAI = item.category === 'AI Models';
                   const isDiskImage = item.category === 'Disk Images';
                   const isSecurity = item.category === 'Security';
+                  const isCategoryFolder = item.isDirectory && KNOWN_CATEGORY_FOLDERS.some((k) => k.toLowerCase() === item.name.toLowerCase());
 
                   return (
                     <tr
@@ -440,7 +446,7 @@ export default function FileExplorerPage() {
                       }`}
                     >
                       <td className="py-2.5 px-4">
-                        {!item.isDirectory && (
+                        {(!item.isDirectory || !isCategoryFolder) && (
                           <input
                             type="checkbox"
                             checked={isChecked}
@@ -461,6 +467,8 @@ export default function FileExplorerPage() {
                           {item.isDirectory ? (
                             isCodebase ? (
                               <FolderGit2 className="w-4 h-4 text-orange-500 flex-shrink-0" />
+                            ) : isCategoryFolder ? (
+                              <FolderCheck className="w-4 h-4 text-emerald-500 flex-shrink-0" />
                             ) : (
                               <Folder className="w-4 h-4 text-amber-500 flex-shrink-0" />
                             )
@@ -483,7 +491,11 @@ export default function FileExplorerPage() {
                         </div>
                       </td>
                       <td className="py-2.5 px-3">
-                        {(!item.isDirectory || isCodebase) && (
+                        {isCategoryFolder ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                            Category Folder
+                          </span>
+                        ) : (
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                               isTorrent
@@ -522,11 +534,11 @@ export default function FileExplorerPage() {
                         {item.isDirectory ? '—' : formatBytes(item.size)}
                       </td>
                       <td className="py-2.5 px-4 text-center">
-                        {!item.isDirectory && (
+                        {(!item.isDirectory || !isCategoryFolder) && (
                           <button
                             onClick={() => openOrganizeModalForSingle(item)}
                             className="px-2.5 py-1 rounded bg-secondary hover:bg-primary hover:text-primary-foreground text-[11px] font-medium transition-colors"
-                            title="Organize this file"
+                            title={item.isDirectory ? 'Organize this folder' : 'Organize this file'}
                           >
                             Organize
                           </button>

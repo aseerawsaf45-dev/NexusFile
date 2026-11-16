@@ -64,14 +64,20 @@ export class UndoManager {
 
     try {
       // Revert move
+      const isDir = fs.statSync(currentPath).isDirectory();
       const sourceRoot = path.parse(currentPath).root.toLowerCase();
       const destRoot = path.parse(originalTarget).root.toLowerCase();
 
       if (sourceRoot === destRoot) {
         fs.renameSync(currentPath, originalTarget);
       } else {
-        fs.copyFileSync(currentPath, originalTarget);
-        fs.unlinkSync(currentPath);
+        if (isDir) {
+          fs.cpSync(currentPath, originalTarget, { recursive: true });
+          fs.rmSync(currentPath, { recursive: true, force: true });
+        } else {
+          fs.copyFileSync(currentPath, originalTarget);
+          fs.unlinkSync(currentPath);
+        }
       }
 
       // Mark history record as undone

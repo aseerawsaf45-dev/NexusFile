@@ -182,6 +182,15 @@ export interface ApplicationSettings {
   quietHoursEnd: string;
 }
 
+export interface CategoryBreakdownItem {
+  category: FileCategory | string;
+  count: number;
+  totalBytes: number;
+  color: string;
+  iconName: string;
+  sampleNames: string[];
+}
+
 export interface DryRunItem {
   id: string;
   originalPath: string;
@@ -193,6 +202,7 @@ export interface DryRunItem {
   willConflict: boolean;
   conflictReason?: string;
   status: 'can_move' | 'will_skip' | 'review_required';
+  isDirectory?: boolean;
 }
 
 export interface DryRunResult {
@@ -202,6 +212,7 @@ export interface DryRunResult {
   conflictingFiles: number;
   skippedFiles: number;
   items: DryRunItem[];
+  categoryBreakdown?: Record<string, CategoryBreakdownItem>;
 }
 
 export interface ExplorerFileItem {

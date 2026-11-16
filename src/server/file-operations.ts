@@ -209,8 +209,20 @@ export class SafeFileOperations {
       };
     }
 
-    // Safeguard 3: Recursive loop
+    // Safeguard 3: Recursive loop or already at destination
     if (this.isRecursiveLoop(normSource, normDest)) {
+      if (normSource.toLowerCase() === normDest.toLowerCase()) {
+        return {
+          success: true,
+          operationType: 'move',
+          originalPath: normSource,
+          finalPath: normDest,
+          fileSize: 0,
+          contentHash: null,
+          status: 'skipped',
+          errorMessage: 'Already at destination.',
+        };
+      }
       return {
         success: false,
         operationType: 'move',
@@ -224,39 +236,42 @@ export class SafeFileOperations {
     }
 
     const stat = fs.statSync(normSource);
-    const fileSize = stat.size;
-    const sourceHash = this.calculateHash(normSource);
+    const isDir = stat.isDirectory();
+    const fileSize = isDir ? 0 : stat.size;
+    const sourceHash = isDir ? null : this.calculateHash(normSource);
 
     // Safeguard 4: Collision Policy
     if (fs.existsSync(normDest)) {
-      // Check if identical by hash
-      const destHash = this.calculateHash(normDest);
-      if (sourceHash && destHash && sourceHash === destHash) {
-        // Files are identical
-        if (collisionPolicy === 'skip') {
-          dbOperations.addHistory({
-            timestamp: new Date().toISOString(),
-            originalPath: normSource,
-            newPath: normDest,
-            fileCategory: category,
-            fileSize,
-            appliedRuleName: ruleName,
-            operationType: 'move',
-            result: 'skipped',
-            errorDetails: 'Target already contains an identical file (matched SHA-256 hash).',
-            contentHash: sourceHash,
-            isUndone: false,
-            canUndo: false,
-          });
-          return {
-            success: true,
-            operationType: 'move',
-            originalPath: normSource,
-            finalPath: normDest,
-            fileSize,
-            contentHash: sourceHash,
-            status: 'skipped',
-          };
+      if (!isDir) {
+        // Check if identical by hash
+        const destHash = this.calculateHash(normDest);
+        if (sourceHash && destHash && sourceHash === destHash) {
+          // Files are identical
+          if (collisionPolicy === 'skip') {
+            dbOperations.addHistory({
+              timestamp: new Date().toISOString(),
+              originalPath: normSource,
+              newPath: normDest,
+              fileCategory: category,
+              fileSize,
+              appliedRuleName: ruleName,
+              operationType: 'move',
+              result: 'skipped',
+              errorDetails: 'Target already contains an identical file (matched SHA-256 hash).',
+              contentHash: sourceHash,
+              isUndone: false,
+              canUndo: false,
+            });
+            return {
+              success: true,
+              operationType: 'move',
+              originalPath: normSource,
+              finalPath: normDest,
+              fileSize,
+              contentHash: sourceHash,
+              status: 'skipped',
+            };
+          }
         }
       }
 
@@ -270,7 +285,7 @@ export class SafeFileOperations {
           appliedRuleName: ruleName,
           operationType: 'move',
           result: 'skipped',
-          errorDetails: 'Destination file already exists and collision policy is "skip".',
+          errorDetails: `Destination ${isDir ? 'folder' : 'file'} already exists and collision policy is "skip".`,
           contentHash: sourceHash,
           isUndone: false,
           canUndo: false,
@@ -303,35 +318,54 @@ export class SafeFileOperations {
 
       if (sourceRoot === destRoot) {
         if (fs.existsSync(normDest)) {
-          // On Windows, fs.renameSync throws EPERM/EEXIST if destination exists.
-          // Safely unlink destination first to permit clean overwrite.
-          try {
-            fs.unlinkSync(normDest);
-          } catch {
-            // If unlink fails, fall back to cross-volume copy+unlink
-            fs.copyFileSync(normSource, normDest);
-            fs.unlinkSync(normSource);
-            return {
-              success: true,
-              operationType: 'move',
-              originalPath: normSource,
-              finalPath: normDest,
-              fileSize,
-              contentHash: sourceHash,
-              status: 'success',
-            };
+          if (isDir) {
+            fs.rmSync(normDest, { recursive: true, force: true });
+          } else {
+            // On Windows, fs.renameSync throws EPERM/EEXIST if destination exists.
+            // Safely unlink destination first to permit clean overwrite.
+            try {
+              fs.unlinkSync(normDest);
+            } catch {
+              // If unlink fails, fall back to cross-volume copy+unlink
+              fs.copyFileSync(normSource, normDest);
+              fs.unlinkSync(normSource);
+              return {
+                success: true,
+                operationType: 'move',
+                originalPath: normSource,
+                finalPath: normDest,
+                fileSize,
+                contentHash: sourceHash,
+                status: 'success',
+              };
+            }
           }
         }
-        fs.renameSync(normSource, normDest);
-      } else {
-        // Cross-volume: copy, verify hash/size, then remove source
-        fs.copyFileSync(normSource, normDest);
-        const copyHash = this.calculateHash(normDest);
-        if (sourceHash && copyHash !== sourceHash) {
-          fs.unlinkSync(normDest);
-          throw new Error('Data integrity check failed during cross-volume copy.');
+        try {
+          fs.renameSync(normSource, normDest);
+        } catch {
+          if (isDir) {
+            fs.cpSync(normSource, normDest, { recursive: true });
+            fs.rmSync(normSource, { recursive: true, force: true });
+          } else {
+            fs.copyFileSync(normSource, normDest);
+            fs.unlinkSync(normSource);
+          }
         }
-        fs.unlinkSync(normSource);
+      } else {
+        if (isDir) {
+          fs.cpSync(normSource, normDest, { recursive: true });
+          fs.rmSync(normSource, { recursive: true, force: true });
+        } else {
+          // Cross-volume: copy, verify hash/size, then remove source
+          fs.copyFileSync(normSource, normDest);
+          const copyHash = this.calculateHash(normDest);
+          if (sourceHash && copyHash !== sourceHash) {
+            fs.unlinkSync(normDest);
+            throw new Error('Data integrity check failed during cross-volume copy.');
+          }
+          fs.unlinkSync(normSource);
+        }
       }
 
       // Record in SQLite history

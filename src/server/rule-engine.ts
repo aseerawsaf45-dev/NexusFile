@@ -19,7 +19,8 @@ export class RuleEngine {
     filePath: string,
     rules: OrganizationRule[],
     defaultTemplate: string = '{Category}/',
-    baseDestinationFolder?: string
+    baseDestinationFolder?: string,
+    unknownFileBehavior: 'organize_to_unknown' | 'review_queue' | 'ignore' = 'organize_to_unknown'
   ): RuleEvaluationResult {
     const filename = path.basename(filePath);
     const classification = FileClassifier.classify(filePath);
@@ -65,11 +66,22 @@ export class RuleEngine {
       classification.projectGuess
     );
 
+    let defaultAction: RuleEvaluationResult['action'] = 'move';
+    if (category === 'Unknown') {
+      if (unknownFileBehavior === 'review_queue') {
+        defaultAction = 'review';
+      } else if (unknownFileBehavior === 'ignore') {
+        defaultAction = 'ignore';
+      } else {
+        defaultAction = 'move';
+      }
+    }
+
     return {
       matchedRule: null,
       proposedDestination: fallbackDest,
       category,
-      action: category === 'Unknown' ? 'review' : 'move',
+      action: defaultAction,
       matchReason: 'No specific rule matched. Applied default category organization template.',
     };
   }

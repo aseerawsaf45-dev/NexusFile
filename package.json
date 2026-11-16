@@ -62,7 +62,8 @@
       "package.json"
     ],
     "asarUnpack": [
-      "electron/server.bundle.js"
+      "electron/server.bundle.js",
+      "electron/bin/**/*"
     ],
     "win": {
       "icon": "build/icon.ico",

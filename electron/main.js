@@ -52,6 +52,44 @@ if (!gotTheLock) {
   });
 }
 
+function getNodeExecutable() {
+  const fs = require('node:fs');
+
+  // Candidate locations in priority order:
+  // 1. Packaged app.asar.unpacked / electron / bin / node.exe
+  const unpackedNode = path.join(__dirname.replace('app.asar', 'app.asar.unpacked'), 'bin', 'node.exe');
+  if (fs.existsSync(unpackedNode)) return unpackedNode;
+
+  // 2. Direct electron/bin/node.exe (development or unpacked directory)
+  const directBinNode = path.join(__dirname, 'bin', 'node.exe');
+  if (fs.existsSync(directBinNode)) return directBinNode;
+
+  // 3. process.resourcesPath / app.asar.unpacked / electron / bin / node.exe
+  if (process.resourcesPath) {
+    const resNode1 = path.join(process.resourcesPath, 'app.asar.unpacked', 'electron', 'bin', 'node.exe');
+    if (fs.existsSync(resNode1)) return resNode1;
+
+    const resNode2 = path.join(process.resourcesPath, 'bin', 'node.exe');
+    if (fs.existsSync(resNode2)) return resNode2;
+  }
+
+  // 4. Relative to executable path
+  if (process.execPath) {
+    const execDir = path.dirname(process.execPath);
+    const execNode1 = path.join(execDir, 'resources', 'app.asar.unpacked', 'electron', 'bin', 'node.exe');
+    if (fs.existsSync(execNode1)) return execNode1;
+
+    const execNode2 = path.join(execDir, 'bin', 'node.exe');
+    if (fs.existsSync(execNode2)) return execNode2;
+  }
+
+  // 5. Host system node if available
+  const defaultHostNode = 'C:\\Program Files\\nodejs\\node.exe';
+  if (fs.existsSync(defaultHostNode)) return defaultHostNode;
+
+  return 'node';
+}
+
 function getBackendServerScript() {
   const fs = require('node:fs');
   let bundledPath = path.join(__dirname, 'server.bundle.js');
@@ -69,7 +107,15 @@ function getBackendServerScript() {
     }
   }
 
-  // 3. Fallback extraction: copy out of asar to userData folder so host node can run it
+  // 3. Check resources path
+  if (process.resourcesPath) {
+    const resPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'electron', 'server.bundle.js');
+    if (fs.existsSync(resPath)) {
+      return resPath;
+    }
+  }
+
+  // 4. Fallback extraction: copy out of asar to userData folder so node can run it
   try {
     const targetDir = app.getPath('userData');
     if (!fs.existsSync(targetDir)) {
@@ -96,19 +142,41 @@ function ensureApiServer() {
       try {
         const fs = require('node:fs');
         const serverPath = getBackendServerScript();
-        const defaultNode = 'C:\\Program Files\\nodejs\\node.exe';
-        const nodeExecutable = fs.existsSync(defaultNode) ? defaultNode : 'node';
-        
+        const nodeExecutable = getNodeExecutable();
+        console.log('[NexusFile] Spawning backend with:', nodeExecutable, serverPath);
+
         apiServerProcess = require('node:child_process').spawn(nodeExecutable, [serverPath], {
           windowsHide: true,
           stdio: 'ignore',
           detached: true,
         });
-        apiServerProcess.unref();
+
+        if (apiServerProcess) {
+          apiServerProcess.on('error', (err) => {
+            console.warn('[NexusFile] API server process error:', err.message);
+          });
+          apiServerProcess.unref();
+        }
       } catch (err) {
-        console.warn('Failed to spawn host node API server:', err.message);
+        console.warn('[NexusFile] Failed to spawn API server:', err.message);
       }
-      setTimeout(resolve, 800);
+
+      // Fast retry check until backend API is up and responsive
+      let checkAttempts = 0;
+      const verifyServer = () => {
+        checkAttempts++;
+        const checkReq = http.get('http://127.0.0.1:4545/api/diagnostics', () => {
+          resolve(true);
+        });
+        checkReq.on('error', () => {
+          if (checkAttempts < 30) {
+            setTimeout(verifyServer, 200);
+          } else {
+            resolve(false);
+          }
+        });
+      };
+      setTimeout(verifyServer, 250);
     });
   });
 }

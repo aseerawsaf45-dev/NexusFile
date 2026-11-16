@@ -56,69 +56,300 @@ const MAGIC_SIGNATURES: { category: FileCategory; signature: number[]; mask?: nu
 // Well-known codebase root markers to detect software repositories & projects
 const CODEBASE_MARKERS = [
   '.git',
+  '.github',
+  '.gitlab-ci.yml',
+  '.svn',
+  '.hg',
+  '.gitignore',
+  '.gitattributes',
+  '.gitmodules',
   'package.json',
+  'package-lock.json',
+  'pnpm-lock.yaml',
+  'pnpm-workspace.yaml',
+  'yarn.lock',
+  'bun.lockb',
+  'bunfig.toml',
   'Cargo.toml',
+  'Cargo.lock',
   'pyproject.toml',
   'requirements.txt',
   'setup.py',
+  'setup.cfg',
   'Pipfile',
+  'Pipfile.lock',
+  'poetry.lock',
+  'tox.ini',
+  'flake8',
+  '.flake8',
+  'manage.py',
+  'environment.yml',
   'go.mod',
+  'go.sum',
+  'go.work',
   'pom.xml',
   'build.gradle',
+  'build.gradle.kts',
   'settings.gradle',
+  'settings.gradle.kts',
+  'gradlew',
+  'gradlew.bat',
+  'build.sbt',
   'CMakeLists.txt',
   'Makefile',
+  'makefile',
+  'meson.build',
+  'configure.ac',
+  'platformio.ini',
   'composer.json',
+  'composer.lock',
   'Gemfile',
+  'Gemfile.lock',
+  'Rakefile',
   'mix.exs',
   'tsconfig.json',
+  'jsconfig.json',
+  'deno.json',
+  'deno.jsonc',
+  'vite.config.ts',
+  'vite.config.js',
+  'vite.config.mjs',
+  'next.config.js',
+  'next.config.mjs',
+  'next.config.ts',
+  'nuxt.config.ts',
+  'nuxt.config.js',
+  'svelte.config.js',
+  'astro.config.mjs',
+  'angular.json',
+  'tailwind.config.js',
+  'tailwind.config.ts',
+  'postcss.config.js',
+  'postcss.config.mjs',
+  'webpack.config.js',
+  'rollup.config.js',
+  'pubspec.yaml',
+  'pubspec.lock',
+  'Package.swift',
+  'Podfile',
+  'Podfile.lock',
   '.sln',
   '.csproj',
+  '.fsproj',
+  '.vbproj',
+  'Dockerfile',
+  'docker-compose.yml',
+  'docker-compose.yaml',
+  'Containerfile',
+  'Procfile',
+  'Jenkinsfile',
+  '.vscode',
+  '.idea',
+  'node_modules',
+  'venv',
+  '.venv',
+  '__pycache__',
 ];
 
 export class FileClassifier {
   /**
-   * Check if a directory is a software codebase or project repository.
+   * Check and classify any directory (Codebases, Images, Documents, Videos, etc.).
    */
   public static classifyDirectory(dirPath: string): ClassificationResult | null {
     try {
-      if (!fs.existsSync(dirPath)) return null;
-      const stat = fs.statSync(dirPath);
-      if (!stat.isDirectory()) return null;
+      const exists = fs.existsSync(dirPath);
+      if (exists) {
+        const stat = fs.statSync(dirPath);
+        if (!stat.isDirectory()) return null;
+      }
 
       const baseName = path.basename(dirPath);
+      const lowerBaseName = baseName.toLowerCase();
 
-      // Check for codebase marker files/folders inside the directory
-      for (const marker of CODEBASE_MARKERS) {
-        const markerPath = path.join(dirPath, marker);
-        if (fs.existsSync(markerPath)) {
+      // 1. Check for codebase marker files/folders inside the directory (if dir exists on disk)
+      if (exists) {
+        for (const marker of CODEBASE_MARKERS) {
+          const markerPath = path.join(dirPath, marker);
+          if (fs.existsSync(markerPath)) {
+            return {
+              category: 'Codebases',
+              confidence: 'high',
+              detectedExtension: 'project',
+              matchedBy: 'codebase_marker',
+              projectGuess: baseName,
+            };
+          }
+        }
+
+        // 2. Check for common source folder layout (src, lib, app, components, pages, routes, scripts, packages, etc.)
+        const subdirs = ['src', 'lib', 'app', 'components', 'pages', 'routes', 'scripts', 'packages', 'bin', 'include'];
+        for (const sub of subdirs) {
+          if (fs.existsSync(path.join(dirPath, sub))) {
+            return {
+              category: 'Codebases',
+              confidence: 'high',
+              detectedExtension: 'project',
+              matchedBy: 'codebase_marker',
+              projectGuess: baseName,
+            };
+          }
+        }
+      }
+
+      // 3. Check for repository naming patterns (e.g. repo-main, project-master, app-dev, name-v1)
+      const isRepoName =
+        /(?:-|_)(?:main|master|dev|develop|release|staging|repo|project|v\d+)$/i.test(lowerBaseName) ||
+        /^(?:code|dev|repo|project|app)-/i.test(lowerBaseName);
+
+      // 4. Inspect directory contents (shallow scan up to 60 items)
+      if (exists) {
+        let entries: string[] = [];
+        try {
+          entries = fs.readdirSync(dirPath);
+        } catch {}
+
+        if (entries.length > 0) {
+          const codeExtensions = new Set([
+            'py', 'pyw', 'js', 'mjs', 'cjs', 'ts', 'mts', 'cts', 'jsx', 'tsx',
+            'rs', 'go', 'c', 'cpp', 'cc', 'cxx', 'h', 'hpp', 'cs', 'java',
+            'kt', 'kts', 'swift', 'rb', 'php', 'lua', 'pl', 'pm', 'sh', 'bash',
+            'ps1', 'bat', 'cmd', 'html', 'htm', 'css', 'scss', 'sass', 'vue',
+            'svelte', 'json', 'yaml', 'yml', 'toml', 'sql', 'wasm', 'dockerfile',
+            'makefile', 'cmake', 'dart', 'zig', 'proto'
+          ]);
+
+          const exactCodeFiles = new Set([
+            'dockerfile', 'makefile', 'gemfile', 'jenkinsfile', 'procfile',
+            'cmakelists.txt', '.gitignore', '.gitattributes', '.env', 'license',
+            'readme.md', 'readme.txt', 'readme', 'index.html', 'main.py', 'app.py',
+            'server.js', 'index.js', 'index.ts', 'server.ts'
+          ]);
+
+          let codeFileCount = 0;
+          const categoryCounts: Record<string, number> = {};
+
+          for (const entry of entries.slice(0, 60)) {
+            const lowerEntry = entry.toLowerCase();
+            const dot = lowerEntry.lastIndexOf('.');
+            const ext = dot !== -1 ? lowerEntry.substring(dot + 1) : '';
+
+            if (codeExtensions.has(ext) || exactCodeFiles.has(lowerEntry)) {
+              codeFileCount++;
+            }
+
+            if (ext) {
+              for (const cat of DEFAULT_CATEGORIES) {
+                if (cat.extensions.includes(ext)) {
+                  categoryCounts[cat.id] = (categoryCounts[cat.id] || 0) + 1;
+                  break;
+                }
+              }
+            }
+          }
+
+          // If it has code files, or matches repo naming with code files
+          if (codeFileCount >= 2 || (codeFileCount >= 1 && (isRepoName || entries.length <= 5))) {
+            return {
+              category: 'Codebases',
+              confidence: 'high',
+              detectedExtension: 'project',
+              matchedBy: 'codebase_marker',
+              projectGuess: baseName,
+            };
+          }
+
+          if (isRepoName && codeFileCount >= 1) {
+            return {
+              category: 'Codebases',
+              confidence: 'medium',
+              detectedExtension: 'project',
+              matchedBy: 'codebase_marker',
+              projectGuess: baseName,
+            };
+          }
+
+          // Find dominant file category in directory contents
+          let dominantCat: string | null = null;
+          let maxCount = 0;
+          for (const [cat, count] of Object.entries(categoryCounts)) {
+            if (count > maxCount) {
+              maxCount = count;
+              dominantCat = cat;
+            }
+          }
+
+          // If >= 30% of files belong to one category, categorize the folder accordingly
+          if (dominantCat && maxCount >= 2 && maxCount / entries.length >= 0.3) {
+            return {
+              category: dominantCat as FileCategory,
+              confidence: 'medium',
+              detectedExtension: 'folder',
+              matchedBy: 'extension',
+              projectGuess: baseName,
+            };
+          }
+        }
+      }
+
+      // 5. Keyword in directory name
+      const nameKeywords: Array<{ category: FileCategory; keywords: string[] }> = [
+        { category: 'Images', keywords: ['photo', 'image', 'picture', 'wallpaper', 'screenshot', 'icon', 'graphic', 'camera', 'dcim', 'album'] },
+        { category: 'Documents', keywords: ['doc', 'document', 'invoice', 'receipt', 'pdf', 'paper', 'report', 'contract', 'statement', 'tax', 'resume', 'cv'] },
+        { category: 'Videos', keywords: ['video', 'movie', 'film', 'series', 'recording', 'clip', 'show', 'footage'] },
+        { category: 'Audio', keywords: ['audio', 'music', 'song', 'sound', 'track', 'podcast', 'voice'] },
+        { category: 'Spreadsheets', keywords: ['sheet', 'spreadsheet', 'excel', 'csv', 'finance', 'accounting', 'budget'] },
+        { category: 'Presentations', keywords: ['presentation', 'slide', 'pitch', 'deck', 'powerpoint'] },
+        { category: 'Design', keywords: ['design', '3d', 'render', 'cad', 'model', 'mesh', 'texture', 'figma', 'psd'] },
+        { category: 'Archives', keywords: ['archive', 'backup', 'unzipped', 'extracted'] },
+        { category: 'Installers', keywords: ['installer', 'setup', 'portable', 'program', 'software'] },
+        { category: 'Data', keywords: ['dataset', 'database', 'sqlite'] },
+        { category: 'Ebooks', keywords: ['ebook', 'novel', 'manga', 'comic'] },
+        { category: 'Fonts', keywords: ['font', 'typeface', 'typography'] },
+        { category: 'Codebases', keywords: ['codebase', 'repository', 'github', 'gitlab', 'git', 'source'] },
+      ];
+
+      for (const { category, keywords } of nameKeywords) {
+        if (keywords.some((kw) => lowerBaseName.includes(kw))) {
           return {
-            category: 'Codebases',
-            confidence: 'high',
-            detectedExtension: 'project',
-            matchedBy: 'codebase_marker',
+            category,
+            confidence: 'medium',
+            detectedExtension: category === 'Codebases' ? 'project' : 'folder',
+            matchedBy: 'keyword',
             projectGuess: baseName,
           };
         }
       }
 
-      // Check for common source folder layout (src/ + test/ or lib/)
-      const hasSrc = fs.existsSync(path.join(dirPath, 'src'));
-      const hasLib = fs.existsSync(path.join(dirPath, 'lib'));
-      const hasTests = fs.existsSync(path.join(dirPath, 'tests')) || fs.existsSync(path.join(dirPath, 'test'));
-      if (hasSrc && (hasLib || hasTests)) {
+      // 6. If repository pattern matched
+      if (isRepoName) {
         return {
           category: 'Codebases',
-          confidence: 'medium',
+          confidence: 'low',
           detectedExtension: 'project',
           matchedBy: 'codebase_marker',
           projectGuess: baseName,
         };
       }
+
+      // Fallback for any other directory: Unknown category folder
+      return {
+        category: 'Unknown',
+        confidence: 'low',
+        detectedExtension: 'folder',
+        matchedBy: 'default',
+        projectGuess: baseName,
+      };
     } catch {
       // Fallback
     }
-    return null;
+
+    return {
+      category: 'Unknown',
+      confidence: 'low',
+      detectedExtension: 'folder',
+      matchedBy: 'default',
+      projectGuess: path.basename(dirPath),
+    };
   }
 
   /**
@@ -128,7 +359,7 @@ export class FileClassifier {
     const filename = path.basename(filePath);
     const lowerName = filename.toLowerCase();
 
-    // 0. Check if path is a directory and represents a codebase
+    // 0. Check if path is a directory
     try {
       if (fs.existsSync(filePath)) {
         const stat = fs.statSync(filePath);
@@ -136,7 +367,7 @@ export class FileClassifier {
           const dirResult = this.classifyDirectory(filePath);
           if (dirResult) return dirResult;
           return {
-            category: 'Documents',
+            category: 'Unknown',
             confidence: 'low',
             detectedExtension: 'folder',
             matchedBy: 'default',

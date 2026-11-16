@@ -221,7 +221,8 @@ export function startApiServer(): Promise<http.Server> {
         // --- DRY SCAN ---
         if (pathname === '/api/dry-scan' && method === 'POST') {
           const body = await getBody();
-          const result = DirectoryMonitorService.runDryScan(body.path);
+          const targetDir = body.targetDirectory || body.destination;
+          const result = DirectoryMonitorService.runDryScan(body.path || body.folderPath, targetDir);
           return sendJson(200, result);
         }
 

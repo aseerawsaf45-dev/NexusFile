@@ -29,7 +29,7 @@ export const DEFAULT_CATEGORIES: CategoryInfo[] = [
     id: 'Images',
     name: 'Images',
     description: 'Photographs, vector artwork, and web graphics',
-    extensions: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'tiff', 'bmp', 'heic', 'ico', 'raw', 'cr2', 'nef'],
+    extensions: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg', 'tiff', 'bmp', 'heic', 'heif', 'avif', 'apng', 'ico', 'raw', 'cr2', 'nef', 'dng'],
     color: '#ec4899',
     iconName: 'Image',
   },
@@ -84,7 +84,8 @@ export const DEFAULT_CATEGORIES: CategoryInfo[] = [
       'zsh', 'fish', 'ps1', 'psm1', 'bat', 'cmd', 'vbs', 'html', 'htm',
       'css', 'scss', 'sass', 'less', 'vue', 'svelte', 'json', 'json5',
       'jsonc', 'yaml', 'yml', 'toml', 'ini', 'env', 'sql', 'prisma',
-      'graphql', 'gql', 'ipynb', 'asm', 's', 'wasm', 'dockerfile', 'makefile', 'cmake'
+      'graphql', 'gql', 'ipynb', 'asm', 's', 'wasm', 'dockerfile', 'makefile', 'cmake',
+      'dart', 'sol', 'zig', 'nim', 'proto', 'v', 'sv'
     ],
     color: '#06b6d4',
     iconName: 'Code2',
@@ -257,3 +258,27 @@ export const DEFAULT_SETTINGS: ApplicationSettings = {
   quietHoursStart: '22:00',
   quietHoursEnd: '07:00',
 };
+
+export const KNOWN_CATEGORY_FOLDERS = [
+  'Documents',
+  'Spreadsheets',
+  'Presentations',
+  'Images',
+  'Videos',
+  'Audio',
+  'Archives',
+  'Installers',
+  'Codebases',
+  'Codes',
+  'Development',
+  'AI Models',
+  'Disk Images',
+  'Security',
+  'Design',
+  'Fonts',
+  'Data',
+  'Ebooks',
+  'Shortcuts',
+  'Torrents',
+  'Unknown',
+];

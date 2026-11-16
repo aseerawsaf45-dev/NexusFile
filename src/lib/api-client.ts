@@ -147,10 +147,10 @@ export const apiClient = {
     }),
 
   // Dry Scan
-  runDryScan: (dirPath: string) =>
+  runDryScan: (dirPath: string, targetDirectory?: string) =>
     request<DryRunResult>('/dry-scan', {
       method: 'POST',
-      body: JSON.stringify({ path: dirPath }),
+      body: JSON.stringify({ path: dirPath, targetDirectory }),
     }),
 
   // Explorer

@@ -21,6 +21,10 @@ import {
   ArrowRight,
   Check,
   Layers,
+  FolderGit2,
+  Code2,
+  Eye,
+  RefreshCw,
 } from 'lucide-react';
 import {
   AreaChart,
@@ -36,7 +40,8 @@ import {
 import { AppShell } from '@/components/layout/AppShell';
 import { apiClient } from '@/lib/api-client';
 import { formatBytes, formatRelativeTime } from '@/lib/utils';
-import { FileOperationHistory } from '@/lib/types';
+import { FileOperationHistory, DryRunResult } from '@/lib/types';
+import { DryRunModal } from '@/components/dryrun/DryRunModal';
 
 const CATEGORY_COLORS: Record<string, string> = {
   Documents: '#3b82f6',
@@ -81,6 +86,11 @@ export default function OverviewPage() {
     lastUndoId?: string;
   } | null>(null);
 
+  // Folder Scan & Breakdown Preview State
+  const [dryRunResult, setDryRunResult] = useState<DryRunResult | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [isDryRunModalOpen, setIsDryRunModalOpen] = useState(false);
+
   const loadData = async () => {
     try {
       const overview = await apiClient.getOverviewStats();
@@ -111,6 +121,29 @@ export default function OverviewPage() {
     return () => clearInterval(interval);
   }, []);
 
+  const fetchScanPreview = async (folder: string, dest?: string) => {
+    if (!folder) {
+      setDryRunResult(null);
+      return;
+    }
+    setIsScanning(true);
+    try {
+      const res = await apiClient.runDryScan(folder, dest);
+      setDryRunResult(res);
+    } catch (err) {
+      console.error('Scan preview error:', err);
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  useEffect(() => {
+    if (selectedSource) {
+      const targetDir = destMode === 'custom' && customDestPath ? customDestPath : undefined;
+      fetchScanPreview(selectedSource, targetDir);
+    }
+  }, [selectedSource, destMode, customDestPath]);
+
   const handlePickSource = async () => {
     const picked = await apiClient.pickFolder('Select Source Folder to Organize');
     if (picked) setSelectedSource(picked);
@@ -140,12 +173,13 @@ export default function OverviewPage() {
         count: res.organizedCount,
         durationMs: res.durationMs,
         message: res.organizedCount > 0
-          ? `Successfully organized ${res.organizedCount} file${res.organizedCount > 1 ? 's' : ''} in ${res.durationMs}ms!`
+          ? `Successfully organized ${res.organizedCount} item${res.organizedCount > 1 ? 's' : ''} in ${res.durationMs}ms!`
           : `Folder is already fully organized. No unorganized files found.`,
         lastUndoId: latestUndo ? latestUndo.id : undefined,
       });
 
       await loadData();
+      await fetchScanPreview(selectedSource, targetDir);
     } catch (err: any) {
       setOrganizeNotice({
         success: false,
@@ -161,7 +195,9 @@ export default function OverviewPage() {
   const handleUndo = async (id: string) => {
     try {
       await apiClient.undoOperation(id);
-      loadData();
+      await loadData();
+      const targetDir = destMode === 'custom' && customDestPath ? customDestPath : undefined;
+      fetchScanPreview(selectedSource, targetDir);
       if (organizeNotice?.lastUndoId === id) {
         setOrganizeNotice((prev) => prev ? { ...prev, message: 'Operation successfully undone! Files restored.' } : null);
       }
@@ -210,12 +246,16 @@ export default function OverviewPage() {
                 {isOrganizing ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                    <span>Organizing Files...</span>
+                    <span>Organizing Items...</span>
                   </>
                 ) : (
                   <>
                     <Zap className="w-4 h-4 group-hover:scale-110 transition-transform text-amber-300" />
-                    <span>⚡ Clean & Organize Now</span>
+                    <span>
+                      {dryRunResult && dryRunResult.processableFiles > 0
+                        ? `⚡ Clean & Organize (${dryRunResult.processableFiles} Items)`
+                        : '⚡ Clean & Organize Now'}
+                    </span>
                   </>
                 )}
               </button>
@@ -325,6 +365,95 @@ export default function OverviewPage() {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Live Scanned Folder Categorization Breakdown */}
+            <div className="rounded-xl border border-border/70 bg-background/50 p-4 space-y-3 shadow-inner">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-border/50 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <div className="p-1 rounded-md bg-brand-500/10 text-brand-400">
+                    <FolderTree className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-foreground">Scanned Folder Categorization Breakdown</h3>
+                    <p className="text-[11px] text-muted-foreground">
+                      Automatic detection across Codebases, Code, Images, Documents, and more
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {isScanning && (
+                    <span className="flex items-center gap-1.5 text-[11px] text-brand-400 font-medium animate-pulse mr-1">
+                      <RefreshCw className="w-3 h-3 animate-spin" />
+                      Scanning & categorizing...
+                    </span>
+                  )}
+
+                  <button
+                    onClick={() => {
+                      const targetDir = destMode === 'custom' && customDestPath ? customDestPath : undefined;
+                      fetchScanPreview(selectedSource, targetDir);
+                    }}
+                    disabled={isScanning || !selectedSource}
+                    className="px-2.5 py-1 rounded-lg border border-border bg-secondary/60 hover:bg-secondary text-[11px] font-semibold text-muted-foreground hover:text-foreground flex items-center gap-1 transition-all"
+                  >
+                    <RefreshCw className={`w-3 h-3 ${isScanning ? 'animate-spin' : ''}`} />
+                    <span>Rescan</span>
+                  </button>
+
+                  {dryRunResult && dryRunResult.items.length > 0 && (
+                    <button
+                      onClick={() => setIsDryRunModalOpen(true)}
+                      className="px-2.5 py-1 rounded-lg border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 text-[11px] font-semibold text-brand-400 flex items-center gap-1 transition-all"
+                    >
+                      <Eye className="w-3 h-3" />
+                      <span>Inspect Manifest ({dryRunResult.totalFiles})</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Categorization Pills & Cards */}
+              {dryRunResult && dryRunResult.items.length > 0 ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2 pt-1">
+                  {Object.values(dryRunResult.categoryBreakdown || {}).map((cat) => (
+                    <div
+                      key={cat.category}
+                      onClick={() => setIsDryRunModalOpen(true)}
+                      className="p-2.5 rounded-lg border border-border/80 bg-card/70 hover:border-brand-500/50 hover:bg-card transition-all cursor-pointer flex flex-col justify-between space-y-1.5 group select-none shadow-sm"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-bold text-foreground truncate group-hover:text-brand-400 transition-colors">
+                          {cat.category}
+                        </span>
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: cat.color }} />
+                      </div>
+                      <div className="flex items-baseline justify-between">
+                        <span className="font-black text-foreground tabular-nums text-sm">
+                          {cat.count} <span className="text-[10px] font-normal text-muted-foreground">{cat.category === 'Codebases' ? 'repos' : 'files'}</span>
+                        </span>
+                        <span className="text-[10px] text-muted-foreground tabular-nums">
+                          {formatBytes(cat.totalBytes)}
+                        </span>
+                      </div>
+                      {cat.sampleNames && cat.sampleNames.length > 0 && (
+                        <div className="text-[10px] text-muted-foreground truncate opacity-75 group-hover:opacity-100 font-mono">
+                          {cat.sampleNames[0]}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-3 text-center text-xs text-muted-foreground">
+                  {isScanning
+                    ? 'Scanning folder contents and detecting repositories...'
+                    : selectedSource
+                    ? 'No unorganized files found in this folder. All items are in order!'
+                    : 'Choose a target folder above to preview categorized items.'}
+                </div>
+              )}
             </div>
 
             {/* Notification Banner / Undo Action */}
@@ -696,6 +825,19 @@ export default function OverviewPage() {
             </div>
           </div>
         </div>
+
+        {/* Dry Run Manifest Preview Modal */}
+        <DryRunModal
+          isOpen={isDryRunModalOpen}
+          onClose={() => setIsDryRunModalOpen(false)}
+          result={dryRunResult}
+          folderPath={selectedSource}
+          onApplyChanges={async () => {
+            await loadData();
+            const targetDir = destMode === 'custom' && customDestPath ? customDestPath : undefined;
+            fetchScanPreview(selectedSource, targetDir);
+          }}
+        />
       </div>
     </AppShell>
   );
